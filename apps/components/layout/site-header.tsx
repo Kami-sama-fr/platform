@@ -3,7 +3,21 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Bell, Bookmark, LogOut, Menu, Search, Settings, User } from 'lucide-react'
+import {
+  Bell,
+  Bookmark,
+  Calendar,
+  Film,
+  Home,
+  Library,
+  LogOut,
+  Menu,
+  Search,
+  Settings,
+  Sparkles,
+  User,
+  X,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -22,11 +36,11 @@ import { USERS } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
 
 const NAV_LINKS = [
-  { href: '/', label: 'Home' },
-  { href: '/browse', label: 'Browse' },
-  { href: '/discover', label: 'Discover' },
-  { href: '/community', label: 'Community' },
-  { href: '/library', label: 'My Library' },
+  { href: '/', label: 'Home', icon: Home },
+  { href: '/catalog', label: 'Browse', icon: Film },
+  { href: '/calendar', label: 'Calendar', icon: Calendar },
+  { href: '/community', label: 'Community', icon: Sparkles },
+  { href: '/library', label: 'My Library', icon: Library },
 ]
 
 export function SiteHeader() {
@@ -49,102 +63,164 @@ export function SiteHeader() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-50 w-full transition-colors duration-300',
+        'sticky top-0 z-50 w-full transition-all duration-300',
         scrolled
-          ? 'border-b border-border/60 bg-background/85 backdrop-blur-xl'
-          : 'bg-gradient-to-b from-background/90 to-transparent',
+          ? 'border-b border-border/60 bg-background/90 shadow-lg shadow-black/20 backdrop-blur-xl'
+          : 'bg-background/70 backdrop-blur-md',
       )}
     >
-      <div className="flex h-16 items-center gap-3 px-4 md:px-8">
-        {/* Mobile menu */}
+      <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-2 px-4 md:px-6">
+        {/* Mobile hamburger */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetTrigger
-            render={
-              <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu" />
-            }
-          >
-            <Menu className="size-5" />
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-9 md:hidden"
+              aria-label="Open menu"
+            >
+              <Menu className="size-5" />
+            </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 p-0">
+          <SheetContent side="left" className="w-72 border-border/40 p-0">
             <SheetTitle className="sr-only">Navigation</SheetTitle>
-            <div className="border-b border-border/60 p-4">
+            {/* Mobile header */}
+            <div className="flex h-14 items-center border-b border-border/40 px-4">
               <Logo />
             </div>
-            <nav className="flex flex-col p-2">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className={cn(
-                    'rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                    isActive(link.href)
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
+            <nav className="flex flex-col gap-0.5 p-3">
+              {NAV_LINKS.map((link) => {
+                const Icon = link.icon
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                      isActive(link.href)
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                    )}
+                  >
+                    <Icon className="size-4" />
+                    {link.label}
+                  </Link>
+                )
+              })}
             </nav>
+            <div className="absolute bottom-0 inset-x-0 border-t border-border/40 p-4">
+              <Link
+                href="/library"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <UserAvatar user={USERS.me} className="size-7" />
+                <div className="flex flex-col">
+                  <span>{USERS.me.displayName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    @{USERS.me.username}
+                  </span>
+                </div>
+              </Link>
+            </div>
           </SheetContent>
         </Sheet>
 
-        <Logo />
+        {/* Logo */}
+        <div className="flex shrink-0 items-center">
+          <Logo className="hidden sm:flex" />
+          <Logo className="sm:hidden [&>span:last-child]:hidden" />
+        </div>
 
         {/* Desktop nav */}
-        <nav className="ml-4 hidden items-center gap-1 md:flex">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                isActive(link.href)
-                  ? 'text-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+        <nav className="ml-6 hidden items-center gap-0.5 md:flex">
+          {NAV_LINKS.map((link) => {
+            const active = isActive(link.href)
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  'relative rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                  active
+                    ? 'text-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {link.label}
+                {active && (
+                  <span className="absolute inset-x-1 -bottom-2 h-0.5 rounded-full bg-primary" />
+                )}
+              </Link>
+            )
+          })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1.5">
-          {/* Desktop inline search */}
-          <div className="hidden lg:block lg:w-64">
-            <SearchBar className="[&_input]:h-9" placeholder="Search…" />
+        {/* Right side actions */}
+        <div className="ml-auto flex items-center gap-1">
+          {/* Search — desktop inline, mobile toggle */}
+          <div className="hidden lg:block">
+            {searchOpen ? (
+              <div className="flex items-center gap-2">
+                <SearchBar
+                  autoFocus
+                  className="w-64 [&_input]:h-9"
+                  placeholder="Search…"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-9 shrink-0"
+                  onClick={() => setSearchOpen(false)}
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-9"
+                onClick={() => setSearchOpen(true)}
+                aria-label="Search"
+              >
+                <Search className="size-5" />
+              </Button>
+            )}
           </div>
 
-          {/* Mobile/tablet search toggle */}
+          {/* Mobile search toggle */}
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="size-9 lg:hidden"
             aria-label="Search"
             onClick={() => setSearchOpen((v) => !v)}
           >
             <Search className="size-5" />
           </Button>
 
+          {/* Notifications */}
           <NotificationsMenu />
 
+          {/* Profile */}
           <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <button
-                  type="button"
-                  aria-label="Profile menu"
-                  className="ml-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                />
-              }
-            >
-              <UserAvatar user={USERS.me} className="size-8" />
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Profile menu"
+                className="ml-1 rounded-full outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <UserAvatar user={USERS.me} className="size-8" />
+              </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuLabel>
                 <div className="flex flex-col">
-                  <span className="text-sm font-medium">{USERS.me.displayName}</span>
+                  <span className="text-sm font-medium">
+                    {USERS.me.displayName}
+                  </span>
                   <span className="text-xs font-normal text-muted-foreground">
                     @{USERS.me.username}
                   </span>
@@ -152,13 +228,17 @@ export function SiteHeader() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem render={<Link href="/library" />}>
-                  <User className="size-4" />
-                  Profile
+                <DropdownMenuItem asChild>
+                  <Link href="/library">
+                    <User className="size-4" />
+                    Profile
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem render={<Link href="/library" />}>
-                  <Bookmark className="size-4" />
-                  My Library
+                <DropdownMenuItem asChild>
+                  <Link href="/library">
+                    <Bookmark className="size-4" />
+                    My Library
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Settings className="size-4" />
@@ -175,10 +255,10 @@ export function SiteHeader() {
         </div>
       </div>
 
-      {/* Expandable mobile search */}
+      {/* Mobile expandable search */}
       {searchOpen && (
-        <div className="border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
-          <SearchBar autoFocus />
+        <div className="border-t border-border/40 bg-background/95 px-4 py-3 backdrop-blur-xl lg:hidden">
+          <SearchBar autoFocus placeholder="Search anime…" />
         </div>
       )}
     </header>
@@ -187,26 +267,42 @@ export function SiteHeader() {
 
 function NotificationsMenu() {
   const items = [
-    { title: 'New episode of Eternal Frost', meta: 'Season 2 · Episode 8 is now available' },
-    { title: 'Aoi replied to your review', meta: 'Crimson Blade · 20m ago' },
-    { title: 'Hollow Kingdom releases soon', meta: 'On your watchlist · 3 days' },
+    {
+      title: 'New episode of Eternal Frost',
+      meta: 'Season 2 · Episode 8 is now available',
+    },
+    {
+      title: 'Aoi replied to your review',
+      meta: 'Crimson Blade · 20m ago',
+    },
+    {
+      title: 'Hollow Kingdom releases soon',
+      meta: 'On your watchlist · 3 days',
+    },
   ]
+
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button variant="ghost" size="icon" aria-label="Notifications" className="relative" />
-        }
-      >
-        <Bell className="size-5" />
-        <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary ring-2 ring-background" />
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Notifications"
+          className="relative size-9"
+        >
+          <Bell className="size-5" />
+          <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary ring-2 ring-background" />
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
         <DropdownMenuLabel>Notifications</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           {items.map((item) => (
-            <DropdownMenuItem key={item.title} className="flex-col items-start gap-0.5 py-2">
+            <DropdownMenuItem
+              key={item.title}
+              className="flex-col items-start gap-0.5 py-2.5"
+            >
               <span className="text-sm font-medium">{item.title}</span>
               <span className="text-xs text-muted-foreground">{item.meta}</span>
             </DropdownMenuItem>

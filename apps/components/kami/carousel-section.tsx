@@ -47,8 +47,8 @@ export function CarouselSection({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {href && (
-            <Button variant="ghost" size="sm" className="text-muted-foreground" nativeButton={false} render={<Link href={href} />}>
-              See all
+            <Button variant="ghost" size="sm" className="text-muted-foreground" asChild>
+              <Link href={href}>See all</Link>
             </Button>
           )}
           <div className="hidden items-center gap-1 md:flex">

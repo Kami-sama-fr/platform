@@ -117,6 +117,18 @@ export interface Recommendation {
   detail: string
 }
 
+export interface SimulcastItem {
+  anime: Anime
+  nextEpisode?: Episode
+  airDay: string
+  nextAirDate: string
+}
+
+export interface SeasonalPick {
+  anime: Anime
+  label: string
+}
+
 export interface CommunityActivity {
   id: string
   type: 'review' | 'discussion' | 'rating' | 'request'

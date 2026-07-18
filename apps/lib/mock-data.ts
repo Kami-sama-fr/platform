@@ -8,6 +8,8 @@ import type {
   Recommendation,
   RecentlyAddedItem,
   Review,
+  SeasonalPick,
+  SimulcastItem,
   TrendingItem,
   UserSummary,
 } from '@/types/anime'
@@ -487,4 +489,58 @@ export function searchAnime(query: string): Anime[] {
       a.genres.some((gg) => gg.name.toLowerCase().includes(q)) ||
       a.studio.name.toLowerCase().includes(q),
   )
+}
+
+export function getSimulcasts(): SimulcastItem[] {
+  const eps = getEpisodes('eternal-frost')
+  return [
+    {
+      anime: getAnime('eternal-frost')!,
+      nextEpisode: eps[eps.length - 1],
+      airDay: 'Saturday',
+      nextAirDate: '2025-07-19',
+    },
+    {
+      anime: getAnime('neon-orbit')!,
+      nextEpisode: getEpisodes('neon-orbit')[getEpisodes('neon-orbit').length - 1],
+      airDay: 'Thursday',
+      nextAirDate: '2025-07-17',
+    },
+    {
+      anime: getAnime('spirit-veil')!,
+      nextEpisode: getEpisodes('spirit-veil')[getEpisodes('spirit-veil').length - 1],
+      airDay: 'Wednesday',
+      nextAirDate: '2025-07-16',
+    },
+    {
+      anime: getAnime('last-serve')!,
+      nextEpisode: getEpisodes('last-serve')[getEpisodes('last-serve').length - 1],
+      airDay: 'Sunday',
+      nextAirDate: '2025-07-20',
+    },
+  ]
+}
+
+export function getSeasonalPicks(): SeasonalPick[] {
+  return [
+    { anime: getAnime('eternal-frost')!, label: 'Summer 2025 Hit' },
+    { anime: getAnime('neon-orbit')!, label: 'Sci-Fi Gem' },
+    { anime: getAnime('hollow-kingdom')!, label: 'Most Anticipated' },
+    { anime: getAnime('spirit-veil')!, label: 'Supernatural Standout' },
+    { anime: getAnime('crimson-blade')!, label: 'Action Classic' },
+    { anime: getAnime('last-serve')!, label: 'Sports Pick' },
+    { anime: getAnime('letter-to-spring')!, label: 'Hidden Gem' },
+    { anime: getAnime('after-school-skies')!, label: 'Slice of Life Hit' },
+  ]
+}
+
+export function getTopPicks(): Anime[] {
+  return [
+    getAnime('eternal-frost')!,
+    getAnime('crimson-blade')!,
+    getAnime('spirit-veil')!,
+    getAnime('neon-orbit')!,
+    getAnime('hollow-kingdom')!,
+    getAnime('last-serve')!,
+  ]
 }
