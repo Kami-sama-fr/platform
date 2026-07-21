@@ -189,3 +189,60 @@ func (h *SchedulingHandler) UpdateReleaseSchedule(c *gin.Context) {
 	}
 	utils.Success(c, http.StatusOK, item)
 }
+
+// --- Release Extensions ---
+
+func (h *SchedulingHandler) ListReleases(c *gin.Context) {
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	items, err := h.deps.SchedulingService.ListUpcomingReleases(c.Request.Context(), limit)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, gin.H{"items": items})
+}
+
+func (h *SchedulingHandler) GetRelease(c *gin.Context) {
+	id := c.Param("releaseId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	item, err := h.deps.SchedulingService.GetReleaseSchedule(c.Request.Context(), id)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, item)
+}
+
+func (h *SchedulingHandler) CancelRelease(c *gin.Context) {
+	id := c.Param("releaseId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	item, err := h.deps.SchedulingService.UpdateReleaseScheduleStatus(c.Request.Context(), id, "cancelled")
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, item)
+}
+
+func (h *SchedulingHandler) PublishRelease(c *gin.Context) {
+	id := c.Param("releaseId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	item, err := h.deps.SchedulingService.UpdateReleaseScheduleStatus(c.Request.Context(), id, "published")
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, item)
+}

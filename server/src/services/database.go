@@ -97,6 +97,21 @@ func (s *DatabaseService) AutoMigrate() error {
 		&models.Contact{},
 		&models.ContactGroup{},
 		&models.SeoMeta{},
+		&models.SourceSyncLog{},
+		&models.SourceConfig{},
+		&models.Category{},
+		&models.FAQ{},
+		&models.Ticket{},
+		&models.TicketReply{},
+		&models.ContactMessage{},
+		&models.CalendarEvent{},
+		&models.Premiere{},
+		&models.Integration{},
+		&models.ApiKey{},
+		&models.DomainConfig{},
+		&models.Tag{},
+		&models.Role{},
+		&models.UserRole{},
 	)
 }
 

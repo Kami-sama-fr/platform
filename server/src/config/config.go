@@ -12,13 +12,14 @@ import (
 const devJWTSecret = "dev-insecure-secret-change-me"
 
 type Config struct {
-	App      AppConfig
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	Auth     AuthConfig
-	OAuth    OAuthConfig
-	CORS     CORSConfig
+	App         AppConfig
+	Server      ServerConfig
+	Database    DatabaseConfig
+	Redis       RedisConfig
+	Auth        AuthConfig
+	OAuth       OAuthConfig
+	CORS        CORSConfig
+	MediaSource MediaSourceConfig
 }
 
 type OAuthProviderConfig struct {
@@ -31,6 +32,8 @@ type OAuthProviderConfig struct {
 type OAuthConfig struct {
 	Google  OAuthProviderConfig
 	GitHub  OAuthProviderConfig
+	Discord OAuthProviderConfig
+	Apple   OAuthProviderConfig
 	StateTTL time.Duration
 }
 
@@ -41,6 +44,7 @@ type AppConfig struct {
 	Mode           string
 	AccessLogs     bool
 	TrustedProxies []string
+	FrontendURL    string
 }
 
 type ServerConfig struct {
@@ -99,15 +103,31 @@ type CORSConfig struct {
 	AllowedOrigins []string
 }
 
+type MediaSourceConfig struct {
+	Enabled  bool
+	Type     string
+	Jellyfin JellyfinConfig
+}
+
+type JellyfinConfig struct {
+	URL           string
+	APIKey        string
+	UserID        string
+	SyncInterval  time.Duration
+	StreamProfile string
+	CacheTTL      time.Duration
+}
+
 func Load() (Config, error) {
 	cfg := Config{
 		App: AppConfig{
 			Env:            getEnv("APP_ENV", "development"),
-			Name:           getEnv("APP_NAME", "Aether Account"),
+			Name:           getEnv("APP_NAME", "Kami-Sama"),
 			Version:        getEnv("APP_VERSION", "dev"),
 			Mode:           getEnv("GIN_MODE", "debug"),
 			AccessLogs:     getEnvBool("API_ACCESS_LOGS", true),
 			TrustedProxies: getEnvSlice("TRUSTED_PROXY_CIDRS", nil),
+			FrontendURL:    getEnv("FRONTEND_URL", "http://localhost:3000"),
 		},
 		Server: ServerConfig{
 			Host: getEnv("HOST", "0.0.0.0"),
@@ -141,10 +161,10 @@ func Load() (Config, error) {
 			LocalEnabled:           getEnvBool("AUTH_LOCAL_ENABLED", true),
 			Mode:                   strings.ToLower(getEnv("AUTH_MODE", "jwt")),
 			JWTSecret:              getEnv("AUTH_JWT_SECRET", getEnv("JWT_SECRET", "")),
-			JWTIssuer:              getEnv("AUTH_JWT_ISSUER", getEnv("JWT_ISSUER", "aether-account")),
+			JWTIssuer:              getEnv("AUTH_JWT_ISSUER", getEnv("JWT_ISSUER", "kami-sama")),
 			JWTAccessTTL:           getEnvDuration("AUTH_ACCESS_TOKEN_TTL", getEnvDuration("JWT_ACCESS_TTL", 15*time.Minute)),
 			JWTRefreshTTL:          getEnvDuration("AUTH_REFRESH_TOKEN_TTL", getEnvDuration("JWT_REFRESH_TTL", 30*24*time.Hour)),
-			RefreshCookieName:      getEnv("AUTH_REFRESH_COOKIE_NAME", "aether_account_refresh"),
+			RefreshCookieName:      getEnv("AUTH_REFRESH_COOKIE_NAME", "kami_sama_account_refresh"),
 			CookieSecure:           getEnvBool("AUTH_COOKIE_SECURE", strings.EqualFold(getEnv("APP_ENV", "development"), "production")),
 			CookieSameSite:         strings.ToLower(getEnv("AUTH_COOKIE_SAME_SITE", "lax")),
 			CookieDomain:           strings.TrimSpace(getEnv("AUTH_COOKIE_DOMAIN", "")),
@@ -170,10 +190,34 @@ func Load() (Config, error) {
 				RedirectURL:  getEnv("OAUTH_GITHUB_REDIRECT_URL", ""),
 				Enabled:      getEnv("OAUTH_GITHUB_CLIENT_ID", "") != "",
 			},
+			Discord: OAuthProviderConfig{
+				ClientID:     getEnv("OAUTH_DISCORD_CLIENT_ID", ""),
+				ClientSecret: getEnv("OAUTH_DISCORD_CLIENT_SECRET", ""),
+				RedirectURL:  getEnv("OAUTH_DISCORD_REDIRECT_URL", ""),
+				Enabled:      getEnv("OAUTH_DISCORD_CLIENT_ID", "") != "",
+			},
+			Apple: OAuthProviderConfig{
+				ClientID:     getEnv("OAUTH_APPLE_CLIENT_ID", ""),
+				ClientSecret: getEnv("OAUTH_APPLE_CLIENT_SECRET", ""),
+				RedirectURL:  getEnv("OAUTH_APPLE_REDIRECT_URL", ""),
+				Enabled:      getEnv("OAUTH_APPLE_CLIENT_ID", "") != "",
+			},
 			StateTTL: getEnvDuration("OAUTH_STATE_TTL", 10*time.Minute),
 		},
 		CORS: CORSConfig{
 			AllowedOrigins: getEnvSlice("CORS_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
+		},
+		MediaSource: MediaSourceConfig{
+			Enabled: getEnvBool("MEDIA_SOURCE_ENABLED", false),
+			Type:    getEnv("MEDIA_SOURCE_TYPE", "local"),
+			Jellyfin: JellyfinConfig{
+				URL:           getEnv("MEDIA_SOURCE_JELLYFIN_URL", "http://localhost:8096"),
+				APIKey:        getEnv("MEDIA_SOURCE_JELLYFIN_API_KEY", ""),
+				UserID:        getEnv("MEDIA_SOURCE_JELLYFIN_USER_ID", ""),
+				SyncInterval:  getEnvDuration("MEDIA_SOURCE_SYNC_INTERVAL", time.Hour),
+				StreamProfile: getEnv("MEDIA_SOURCE_STREAM_PROFILE", "native"),
+				CacheTTL:      getEnvDuration("MEDIA_SOURCE_CACHE_TTL", 5*time.Minute),
+			},
 		},
 	}
 

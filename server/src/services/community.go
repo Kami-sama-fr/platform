@@ -294,3 +294,7 @@ func (s *CommunityService) RemoveFromWatchlist(ctx context.Context, userID, watc
 func (s *CommunityService) ListWatchlistAnime(ctx context.Context, id string) ([]models.WatchlistItem, error) {
 	return s.repos.Watchlists().ListAnime(ctx, id)
 }
+
+func (s *CommunityService) AdminListAllWatchlists(ctx context.Context) ([]models.Watchlist, error) {
+	return s.repos.Watchlists().ListAll(ctx)
+}

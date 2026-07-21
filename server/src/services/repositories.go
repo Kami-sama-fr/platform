@@ -91,6 +91,39 @@ func (r *Repositories) ContactGroups() interfaces.ContactGroupRepository {
 func (r *Repositories) WorkspaceSSOConfigs() interfaces.WorkspaceSSOConfigRepository {
 	return &workspaceSSOConfigRepository{db: r.db}
 }
+func (r *Repositories) Tags() interfaces.TagRepository           { return &tagRepository{db: r.db} }
+func (r *Repositories) Categories() interfaces.CategoryRepository { return &categoryRepository{db: r.db} }
+func (r *Repositories) Libraries() interfaces.LibraryRepository   { return &libraryRepository{db: r.db} }
+func (r *Repositories) Roles() interfaces.RoleRepository           { return &roleRepository{db: r.db} }
+func (r *Repositories) UserRoles() interfaces.UserRoleRepository   { return &userRoleRepository{db: r.db} }
+func (r *Repositories) FAQs() interfaces.FAQRepository {
+	return &faqRepository{db: r.db}
+}
+func (r *Repositories) Tickets() interfaces.TicketRepository {
+	return &ticketRepository{db: r.db}
+}
+func (r *Repositories) TicketReplies() interfaces.TicketReplyRepository {
+	return &ticketReplyRepository{db: r.db}
+}
+func (r *Repositories) ContactMessages() interfaces.ContactMessageRepository {
+	return &contactMessageRepository{db: r.db}
+}
+func (r *Repositories) NotificationTemplates() interfaces.NotificationTemplateRepository {
+	return &notificationTemplateRepository{db: r.db}
+}
+func (r *Repositories) DomainConfigs() interfaces.DomainConfigRepository {
+	return &domainConfigRepository{db: r.db}
+}
+func (r *Repositories) ApiKeys() interfaces.ApiKeyRepository { return &apiKeyRepository{db: r.db} }
+func (r *Repositories) Integrations() interfaces.IntegrationRepository {
+	return &integrationRepository{db: r.db}
+}
+func (r *Repositories) CalendarEvents() interfaces.CalendarEventRepository {
+	return &calendarEventRepository{db: r.db}
+}
+func (r *Repositories) Premieres() interfaces.PremiereRepository {
+	return &premiereRepository{db: r.db}
+}
 func (r *Repositories) WithDB(db *gorm.DB) *Repositories { return &Repositories{db: db} }
 
 type userRepository struct{ db *gorm.DB }
@@ -731,6 +764,34 @@ func (r *reviewRepository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Delete(&models.Review{}, "id = ?", id).Error
 }
 
+func (r *reviewRepository) ListAll(ctx context.Context, rating int, authorID, animeID string, limit, offset int) ([]models.Review, int64, error) {
+	var items []models.Review
+	var total int64
+	query := r.db.WithContext(ctx).Model(&models.Review{})
+	if rating > 0 {
+		query = query.Where("rating = ?", rating)
+	}
+	if authorID != "" {
+		query = query.Where("user_id = ?", authorID)
+	}
+	if animeID != "" {
+		query = query.Where("anime_id = ?", animeID)
+	}
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *reviewRepository) ListFlagged(ctx context.Context) ([]models.Review, error) {
+	var items []models.Review
+	err := r.db.WithContext(ctx).Where("status = ?", "flagged").Order("created_at ASC").Find(&items).Error
+	return items, err
+}
+
 type commentRepository struct{ db *gorm.DB }
 
 func (r *commentRepository) Create(ctx context.Context, comment *models.Comment) error {
@@ -777,6 +838,31 @@ func (r *commentRepository) Delete(ctx context.Context, id string) error {
 	return r.db.WithContext(ctx).Delete(&models.Comment{}, "id = ?", id).Error
 }
 
+func (r *commentRepository) ListAll(ctx context.Context, status, authorID, animeID string, limit, offset int) ([]models.Comment, int64, error) {
+	var items []models.Comment
+	var total int64
+	query := r.db.WithContext(ctx).Model(&models.Comment{})
+	if authorID != "" {
+		query = query.Where("user_id = ?", authorID)
+	}
+	if animeID != "" {
+		query = query.Where("anime_id = ?", animeID)
+	}
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *commentRepository) ListPending(ctx context.Context) ([]models.Comment, error) {
+	var items []models.Comment
+	err := r.db.WithContext(ctx).Order("created_at ASC").Find(&items).Error
+	return items, err
+}
+
 type reportRepository struct{ db *gorm.DB }
 
 func (r *reportRepository) Create(ctx context.Context, report *models.Report) error {
@@ -809,6 +895,31 @@ func (r *reportRepository) Update(ctx context.Context, report *models.Report) er
 	return r.db.WithContext(ctx).Save(report).Error
 }
 
+func (r *reportRepository) ListAll(ctx context.Context, status, targetType string, limit, offset int) ([]models.Report, int64, error) {
+	var items []models.Report
+	var total int64
+	query := r.db.WithContext(ctx).Model(&models.Report{})
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if targetType != "" {
+		query = query.Where("target_type = ?", targetType)
+	}
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *reportRepository) ListPending(ctx context.Context) ([]models.Report, error) {
+	var items []models.Report
+	err := r.db.WithContext(ctx).Where("status = ?", "pending").Order("created_at ASC").Find(&items).Error
+	return items, err
+}
+
 type watchlistRepository struct{ db *gorm.DB }
 
 func (r *watchlistRepository) Create(ctx context.Context, watchlist *models.Watchlist) error {
@@ -824,6 +935,12 @@ func (r *watchlistRepository) GetByID(ctx context.Context, id string) (*models.W
 func (r *watchlistRepository) ListByUser(ctx context.Context, userID string) ([]models.Watchlist, error) {
 	var items []models.Watchlist
 	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Order("created_at DESC").Find(&items).Error
+	return items, err
+}
+
+func (r *watchlistRepository) ListAll(ctx context.Context) ([]models.Watchlist, error) {
+	var items []models.Watchlist
+	err := r.db.WithContext(ctx).Order("created_at DESC").Find(&items).Error
 	return items, err
 }
 
@@ -1137,6 +1254,478 @@ func (r *studioRepository) Search(ctx context.Context, query string, limit int) 
 	var items []models.Studio
 	err := r.db.WithContext(ctx).Where("name ILIKE ?", "%"+query+"%").Limit(limit).Find(&items).Error
 	return items, err
+}
+
+type tagRepository struct{ db *gorm.DB }
+
+func (r *tagRepository) Create(ctx context.Context, tag *models.Tag) error {
+	return r.db.WithContext(ctx).Create(tag).Error
+}
+
+func (r *tagRepository) GetByID(ctx context.Context, id string) (*models.Tag, error) {
+	var item models.Tag
+	err := r.db.WithContext(ctx).First(&item, "id = ?", id).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "TAG_NOT_FOUND", "The requested tag was not found.", nil))
+}
+
+func (r *tagRepository) GetBySlug(ctx context.Context, slug string) (*models.Tag, error) {
+	var item models.Tag
+	err := r.db.WithContext(ctx).First(&item, "slug = ?", slug).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "TAG_NOT_FOUND", "The requested tag was not found.", nil))
+}
+
+func (r *tagRepository) List(ctx context.Context) ([]models.Tag, error) {
+	var items []models.Tag
+	err := r.db.WithContext(ctx).Order("name ASC").Find(&items).Error
+	return items, err
+}
+
+func (r *tagRepository) Update(ctx context.Context, tag *models.Tag) error {
+	return r.db.WithContext(ctx).Save(tag).Error
+}
+
+func (r *tagRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&models.Tag{}, "id = ?", id).Error
+}
+
+type categoryRepository struct{ db *gorm.DB }
+
+func (r *categoryRepository) Create(ctx context.Context, category *models.Category) error {
+	return r.db.WithContext(ctx).Create(category).Error
+}
+
+func (r *categoryRepository) GetByID(ctx context.Context, id string) (*models.Category, error) {
+	var item models.Category
+	err := r.db.WithContext(ctx).First(&item, "id = ?", id).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "CATEGORY_NOT_FOUND", "The requested category was not found.", nil))
+}
+
+func (r *categoryRepository) GetBySlug(ctx context.Context, slug string) (*models.Category, error) {
+	var item models.Category
+	err := r.db.WithContext(ctx).First(&item, "slug = ?", slug).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "CATEGORY_NOT_FOUND", "The requested category was not found.", nil))
+}
+
+func (r *categoryRepository) List(ctx context.Context) ([]models.Category, error) {
+	var items []models.Category
+	err := r.db.WithContext(ctx).Order("sort_order ASC, name ASC").Find(&items).Error
+	return items, err
+}
+
+func (r *categoryRepository) Update(ctx context.Context, category *models.Category) error {
+	return r.db.WithContext(ctx).Save(category).Error
+}
+
+func (r *categoryRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&models.Category{}, "id = ?", id).Error
+}
+
+type libraryRepository struct{ db *gorm.DB }
+
+func (r *libraryRepository) Create(ctx context.Context, library *models.SourceConfig) error {
+	return r.db.WithContext(ctx).Create(library).Error
+}
+
+func (r *libraryRepository) GetByID(ctx context.Context, id string) (*models.SourceConfig, error) {
+	var item models.SourceConfig
+	err := r.db.WithContext(ctx).First(&item, "id = ?", id).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "LIBRARY_NOT_FOUND", "The requested library was not found.", nil))
+}
+
+func (r *libraryRepository) GetBySourceType(ctx context.Context, sourceType string) (*models.SourceConfig, error) {
+	var item models.SourceConfig
+	err := r.db.WithContext(ctx).First(&item, "source_type = ?", sourceType).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "LIBRARY_NOT_FOUND", "The requested library was not found.", nil))
+}
+
+func (r *libraryRepository) List(ctx context.Context) ([]models.SourceConfig, error) {
+	var items []models.SourceConfig
+	err := r.db.WithContext(ctx).Order("source_type ASC").Find(&items).Error
+	return items, err
+}
+
+func (r *libraryRepository) Update(ctx context.Context, library *models.SourceConfig) error {
+	return r.db.WithContext(ctx).Save(library).Error
+}
+
+func (r *libraryRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&models.SourceConfig{}, "id = ?", id).Error
+}
+
+type roleRepository struct{ db *gorm.DB }
+
+func (r *roleRepository) Create(ctx context.Context, role *models.Role) error {
+	return r.db.WithContext(ctx).Create(role).Error
+}
+
+func (r *roleRepository) GetByID(ctx context.Context, id string) (*models.Role, error) {
+	var item models.Role
+	err := r.db.WithContext(ctx).First(&item, "id = ?", id).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "ROLE_NOT_FOUND", "The requested role was not found.", nil))
+}
+
+func (r *roleRepository) GetBySlug(ctx context.Context, slug string) (*models.Role, error) {
+	var item models.Role
+	err := r.db.WithContext(ctx).First(&item, "slug = ?", slug).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "ROLE_NOT_FOUND", "The requested role was not found.", nil))
+}
+
+func (r *roleRepository) List(ctx context.Context) ([]models.Role, error) {
+	var items []models.Role
+	err := r.db.WithContext(ctx).Order("name ASC").Find(&items).Error
+	return items, err
+}
+
+func (r *roleRepository) Update(ctx context.Context, role *models.Role) error {
+	return r.db.WithContext(ctx).Save(role).Error
+}
+
+func (r *roleRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&models.Role{}, "id = ?", id).Error
+}
+
+type userRoleRepository struct{ db *gorm.DB }
+
+func (r *userRoleRepository) Assign(ctx context.Context, userRole *models.UserRole) error {
+	return r.db.WithContext(ctx).Create(userRole).Error
+}
+
+func (r *userRoleRepository) Remove(ctx context.Context, userID, roleID string) error {
+	return r.db.WithContext(ctx).Delete(&models.UserRole{}, "user_id = ? AND role_id = ?", userID, roleID).Error
+}
+
+func (r *userRoleRepository) GetByUserAndRole(ctx context.Context, userID, roleID string) (*models.UserRole, error) {
+	var item models.UserRole
+	err := r.db.WithContext(ctx).First(&item, "user_id = ? AND role_id = ?", userID, roleID).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "USER_ROLE_NOT_FOUND", "The user does not have this role.", nil))
+}
+
+func (r *userRoleRepository) ListByUser(ctx context.Context, userID string) ([]models.UserRole, error) {
+	var items []models.UserRole
+	err := r.db.WithContext(ctx).Where("user_id = ?", userID).Find(&items).Error
+	return items, err
+}
+
+func (r *userRoleRepository) ListByRole(ctx context.Context, roleID string) ([]models.UserRole, error) {
+	var items []models.UserRole
+	err := r.db.WithContext(ctx).Where("role_id = ?", roleID).Find(&items).Error
+	return items, err
+}
+
+func (r *userRoleRepository) CountByRole(ctx context.Context, roleID string) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.UserRole{}).Where("role_id = ?", roleID).Count(&count).Error
+	return count, err
+}
+
+type faqRepository struct{ db *gorm.DB }
+
+func (r *faqRepository) Create(ctx context.Context, faq *models.FAQ) error {
+	return r.db.WithContext(ctx).Create(faq).Error
+}
+
+func (r *faqRepository) GetByID(ctx context.Context, id string) (*models.FAQ, error) {
+	var item models.FAQ
+	err := r.db.WithContext(ctx).First(&item, "id = ?", id).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "FAQ_NOT_FOUND", "The requested FAQ was not found.", nil))
+}
+
+func (r *faqRepository) List(ctx context.Context, category string, activeOnly bool) ([]models.FAQ, error) {
+	var items []models.FAQ
+	query := r.db.WithContext(ctx)
+	if category != "" {
+		query = query.Where("category = ?", category)
+	}
+	if activeOnly {
+		query = query.Where("is_active = ?", true)
+	}
+	err := query.Order("sort_order ASC, created_at ASC").Find(&items).Error
+	return items, err
+}
+
+func (r *faqRepository) Update(ctx context.Context, faq *models.FAQ) error {
+	return r.db.WithContext(ctx).Save(faq).Error
+}
+
+func (r *faqRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&models.FAQ{}, "id = ?", id).Error
+}
+
+func (r *faqRepository) UpdateSortOrders(ctx context.Context, orders map[string]int) error {
+	for id, order := range orders {
+		if err := r.db.WithContext(ctx).Model(&models.FAQ{}).Where("id = ?", id).Update("sort_order", order).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type ticketRepository struct{ db *gorm.DB }
+
+func (r *ticketRepository) Create(ctx context.Context, ticket *models.Ticket) error {
+	return r.db.WithContext(ctx).Create(ticket).Error
+}
+
+func (r *ticketRepository) GetByID(ctx context.Context, id string) (*models.Ticket, error) {
+	var item models.Ticket
+	err := r.db.WithContext(ctx).First(&item, "id = ?", id).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "TICKET_NOT_FOUND", "The requested ticket was not found.", nil))
+}
+
+func (r *ticketRepository) List(ctx context.Context, status, priority, category string, limit, offset int) ([]models.Ticket, int64, error) {
+	var items []models.Ticket
+	var total int64
+	query := r.db.WithContext(ctx).Model(&models.Ticket{})
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if priority != "" {
+		query = query.Where("priority = ?", priority)
+	}
+	if category != "" {
+		query = query.Where("category = ?", category)
+	}
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *ticketRepository) Update(ctx context.Context, ticket *models.Ticket) error {
+	return r.db.WithContext(ctx).Save(ticket).Error
+}
+
+type ticketReplyRepository struct{ db *gorm.DB }
+
+func (r *ticketReplyRepository) Create(ctx context.Context, reply *models.TicketReply) error {
+	return r.db.WithContext(ctx).Create(reply).Error
+}
+
+func (r *ticketReplyRepository) ListByTicket(ctx context.Context, ticketID string, limit, offset int) ([]models.TicketReply, int64, error) {
+	var items []models.TicketReply
+	var total int64
+	query := r.db.WithContext(ctx).Model(&models.TicketReply{}).Where("ticket_id = ?", ticketID)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := query.Order("created_at ASC").Offset(offset).Limit(limit).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+type contactMessageRepository struct{ db *gorm.DB }
+
+func (r *contactMessageRepository) Create(ctx context.Context, msg *models.ContactMessage) error {
+	return r.db.WithContext(ctx).Create(msg).Error
+}
+
+func (r *contactMessageRepository) GetByID(ctx context.Context, id string) (*models.ContactMessage, error) {
+	var item models.ContactMessage
+	err := r.db.WithContext(ctx).First(&item, "id = ?", id).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "CONTACT_MESSAGE_NOT_FOUND", "The requested contact message was not found.", nil))
+}
+
+func (r *contactMessageRepository) List(ctx context.Context, status string, limit, offset int) ([]models.ContactMessage, int64, error) {
+	var items []models.ContactMessage
+	var total int64
+	query := r.db.WithContext(ctx).Model(&models.ContactMessage{})
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&items).Error; err != nil {
+		return nil, 0, err
+	}
+	return items, total, nil
+}
+
+func (r *contactMessageRepository) Update(ctx context.Context, msg *models.ContactMessage) error {
+	return r.db.WithContext(ctx).Save(msg).Error
+}
+
+func (r *contactMessageRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&models.ContactMessage{}, "id = ?", id).Error
+}
+
+type notificationTemplateRepository struct{ db *gorm.DB }
+
+func (r *notificationTemplateRepository) Create(ctx context.Context, tmpl *models.NotificationTemplate) error {
+	return r.db.WithContext(ctx).Create(tmpl).Error
+}
+
+func (r *notificationTemplateRepository) GetByID(ctx context.Context, id string) (*models.NotificationTemplate, error) {
+	var item models.NotificationTemplate
+	err := r.db.WithContext(ctx).First(&item, "id = ?", id).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "NOTIFICATION_TEMPLATE_NOT_FOUND", "The requested notification template was not found.", nil))
+}
+
+func (r *notificationTemplateRepository) List(ctx context.Context) ([]models.NotificationTemplate, error) {
+	var items []models.NotificationTemplate
+	err := r.db.WithContext(ctx).Order("created_at DESC").Find(&items).Error
+	return items, err
+}
+
+func (r *notificationTemplateRepository) Update(ctx context.Context, tmpl *models.NotificationTemplate) error {
+	return r.db.WithContext(ctx).Save(tmpl).Error
+}
+
+func (r *notificationTemplateRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&models.NotificationTemplate{}, "id = ?", id).Error
+}
+
+// --- DomainConfig repository ---
+
+type domainConfigRepository struct{ db *gorm.DB }
+
+func (r *domainConfigRepository) Create(ctx context.Context, config *models.DomainConfig) error {
+	return r.db.WithContext(ctx).Create(config).Error
+}
+
+func (r *domainConfigRepository) GetByID(ctx context.Context, id string) (*models.DomainConfig, error) {
+	var item models.DomainConfig
+	err := r.db.WithContext(ctx).First(&item, "id = ?", id).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "DOMAIN_CONFIG_NOT_FOUND", "The requested domain config was not found.", nil))
+}
+
+func (r *domainConfigRepository) List(ctx context.Context) ([]models.DomainConfig, error) {
+	var items []models.DomainConfig
+	err := r.db.WithContext(ctx).Order("domain ASC").Find(&items).Error
+	return items, err
+}
+
+func (r *domainConfigRepository) Update(ctx context.Context, config *models.DomainConfig) error {
+	return r.db.WithContext(ctx).Save(config).Error
+}
+
+func (r *domainConfigRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&models.DomainConfig{}, "id = ?", id).Error
+}
+
+// --- ApiKey repository ---
+
+type apiKeyRepository struct{ db *gorm.DB }
+
+func (r *apiKeyRepository) Create(ctx context.Context, key *models.ApiKey) error {
+	return r.db.WithContext(ctx).Create(key).Error
+}
+
+func (r *apiKeyRepository) GetByID(ctx context.Context, id string) (*models.ApiKey, error) {
+	var item models.ApiKey
+	err := r.db.WithContext(ctx).First(&item, "id = ?", id).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "API_KEY_NOT_FOUND", "The requested API key was not found.", nil))
+}
+
+func (r *apiKeyRepository) List(ctx context.Context) ([]models.ApiKey, error) {
+	var items []models.ApiKey
+	err := r.db.WithContext(ctx).Order("created_at DESC").Find(&items).Error
+	return items, err
+}
+
+func (r *apiKeyRepository) Update(ctx context.Context, key *models.ApiKey) error {
+	return r.db.WithContext(ctx).Save(key).Error
+}
+
+func (r *apiKeyRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&models.ApiKey{}, "id = ?", id).Error
+}
+
+// --- Integration repository ---
+
+type integrationRepository struct{ db *gorm.DB }
+
+func (r *integrationRepository) Create(ctx context.Context, integration *models.Integration) error {
+	return r.db.WithContext(ctx).Create(integration).Error
+}
+
+func (r *integrationRepository) GetByID(ctx context.Context, id string) (*models.Integration, error) {
+	var item models.Integration
+	err := r.db.WithContext(ctx).First(&item, "id = ?", id).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "INTEGRATION_NOT_FOUND", "The requested integration was not found.", nil))
+}
+
+func (r *integrationRepository) List(ctx context.Context) ([]models.Integration, error) {
+	var items []models.Integration
+	err := r.db.WithContext(ctx).Order("name ASC").Find(&items).Error
+	return items, err
+}
+
+func (r *integrationRepository) Update(ctx context.Context, integration *models.Integration) error {
+	return r.db.WithContext(ctx).Save(integration).Error
+}
+
+func (r *integrationRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&models.Integration{}, "id = ?", id).Error
+}
+
+type calendarEventRepository struct{ db *gorm.DB }
+
+func (r *calendarEventRepository) Create(ctx context.Context, event *models.CalendarEvent) error {
+	return r.db.WithContext(ctx).Create(event).Error
+}
+
+func (r *calendarEventRepository) GetByID(ctx context.Context, id string) (*models.CalendarEvent, error) {
+	var item models.CalendarEvent
+	err := r.db.WithContext(ctx).First(&item, "id = ?", id).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "CALENDAR_EVENT_NOT_FOUND", "The requested calendar event was not found.", nil))
+}
+
+func (r *calendarEventRepository) List(ctx context.Context) ([]models.CalendarEvent, error) {
+	var items []models.CalendarEvent
+	err := r.db.WithContext(ctx).Order("start_at ASC").Find(&items).Error
+	return items, err
+}
+
+func (r *calendarEventRepository) ListByDateRange(ctx context.Context, startDate, endDate string) ([]models.CalendarEvent, error) {
+	var items []models.CalendarEvent
+	query := r.db.WithContext(ctx)
+	if startDate != "" {
+		query = query.Where("start_at >= ?", startDate)
+	}
+	if endDate != "" {
+		query = query.Where("start_at <= ?", endDate)
+	}
+	err := query.Order("start_at ASC").Find(&items).Error
+	return items, err
+}
+
+func (r *calendarEventRepository) Update(ctx context.Context, event *models.CalendarEvent) error {
+	return r.db.WithContext(ctx).Save(event).Error
+}
+
+func (r *calendarEventRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&models.CalendarEvent{}, "id = ?", id).Error
+}
+
+type premiereRepository struct{ db *gorm.DB }
+
+func (r *premiereRepository) Create(ctx context.Context, premiere *models.Premiere) error {
+	return r.db.WithContext(ctx).Create(premiere).Error
+}
+
+func (r *premiereRepository) GetByID(ctx context.Context, id string) (*models.Premiere, error) {
+	var item models.Premiere
+	err := r.db.WithContext(ctx).First(&item, "id = ?", id).Error
+	return &item, normalizeNotFound(err, utils.NewError(404, "PREMIERE_NOT_FOUND", "The requested premiere was not found.", nil))
+}
+
+func (r *premiereRepository) List(ctx context.Context) ([]models.Premiere, error) {
+	var items []models.Premiere
+	err := r.db.WithContext(ctx).Order("scheduled_at ASC").Find(&items).Error
+	return items, err
+}
+
+func (r *premiereRepository) Update(ctx context.Context, premiere *models.Premiere) error {
+	return r.db.WithContext(ctx).Save(premiere).Error
+}
+
+func (r *premiereRepository) Delete(ctx context.Context, id string) error {
+	return r.db.WithContext(ctx).Delete(&models.Premiere{}, "id = ?", id).Error
 }
 
 func normalizeNotFound(err error, notFound error) error {

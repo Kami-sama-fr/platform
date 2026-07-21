@@ -50,7 +50,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 
 export function Overview() {
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
       {/* Bannière */}
       <section className="overflow-hidden rounded-xl border border-border bg-card">
         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between md:p-6">

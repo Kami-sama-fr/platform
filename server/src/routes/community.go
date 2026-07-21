@@ -3,6 +3,7 @@ package routes
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kami-sama-fr/platform/server/src/middleware"
@@ -479,4 +480,273 @@ func (h *CommunityHandler) ListWatchlistAnime(c *gin.Context) {
 		return
 	}
 	utils.Success(c, http.StatusOK, gin.H{"items": items})
+}
+
+// --- Admin Comments ---
+
+func (h *CommunityHandler) AdminListComments(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	items, total, err := h.deps.Repos.Comments().ListAll(
+		c.Request.Context(),
+		c.DefaultQuery("status", ""),
+		c.DefaultQuery("author", ""),
+		c.DefaultQuery("anime", ""),
+		limit,
+		(page-1)*limit,
+	)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, gin.H{"items": items, "total": total})
+}
+
+func (h *CommunityHandler) AdminGetComment(c *gin.Context) {
+	id := c.Param("commentId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	item, err := h.deps.Repos.Comments().GetByID(c.Request.Context(), id)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, item)
+}
+
+func (h *CommunityHandler) AdminModerateComment(c *gin.Context) {
+	id := c.Param("commentId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	comment, err := h.deps.Repos.Comments().GetByID(c.Request.Context(), id)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	comment.UpdatedAt = time.Now()
+	if err := h.deps.Repos.Comments().Update(c.Request.Context(), comment); err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, comment)
+}
+
+func (h *CommunityHandler) AdminDeleteComment(c *gin.Context) {
+	id := c.Param("commentId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	if err := h.deps.Repos.Comments().Delete(c.Request.Context(), id); err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, gin.H{"deleted": true})
+}
+
+func (h *CommunityHandler) AdminApproveComment(c *gin.Context) {
+	id := c.Param("commentId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	comment, err := h.deps.Repos.Comments().GetByID(c.Request.Context(), id)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	comment.UpdatedAt = time.Now()
+	if err := h.deps.Repos.Comments().Update(c.Request.Context(), comment); err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, comment)
+}
+
+func (h *CommunityHandler) AdminFlagComment(c *gin.Context) {
+	id := c.Param("commentId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	comment, err := h.deps.Repos.Comments().GetByID(c.Request.Context(), id)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	comment.UpdatedAt = time.Now()
+	if err := h.deps.Repos.Comments().Update(c.Request.Context(), comment); err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, comment)
+}
+
+// --- Admin Reviews ---
+
+func (h *CommunityHandler) AdminListReviews(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	rating, _ := strconv.Atoi(c.DefaultQuery("rating", "0"))
+	items, total, err := h.deps.Repos.Reviews().ListAll(
+		c.Request.Context(),
+		rating,
+		c.DefaultQuery("author", ""),
+		c.DefaultQuery("anime", ""),
+		limit,
+		(page-1)*limit,
+	)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, gin.H{"items": items, "total": total})
+}
+
+func (h *CommunityHandler) AdminFeatureReview(c *gin.Context) {
+	id := c.Param("reviewId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	review, err := h.deps.Repos.Reviews().GetByID(c.Request.Context(), id)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	review.UpdatedAt = time.Now()
+	if err := h.deps.Repos.Reviews().Update(c.Request.Context(), review); err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, gin.H{"featured": true, "review": review})
+}
+
+// --- Admin Reports ---
+
+func (h *CommunityHandler) AdminListReports(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	items, total, err := h.deps.Repos.Reports().ListAll(
+		c.Request.Context(),
+		c.DefaultQuery("status", ""),
+		c.DefaultQuery("type", ""),
+		limit,
+		(page-1)*limit,
+	)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, gin.H{"items": items, "total": total})
+}
+
+func (h *CommunityHandler) AdminGetReport(c *gin.Context) {
+	id := c.Param("reportId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	item, err := h.deps.Repos.Reports().GetByID(c.Request.Context(), id)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, item)
+}
+
+func (h *CommunityHandler) AdminProcessReport(c *gin.Context) {
+	id := c.Param("reportId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	var req struct {
+		Status string `json:"status"`
+	}
+	if c.ShouldBindJSON(&req) != nil || req.Status == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	report, err := h.deps.Repos.Reports().GetByID(c.Request.Context(), id)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	report.Status = req.Status
+	report.UpdatedAt = time.Now()
+	if err := h.deps.Repos.Reports().Update(c.Request.Context(), report); err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, report)
+}
+
+func (h *CommunityHandler) AdminResolveReport(c *gin.Context) {
+	id := c.Param("reportId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	report, err := h.deps.Repos.Reports().GetByID(c.Request.Context(), id)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	now := time.Now()
+	report.Status = "resolved"
+	report.ResolvedAt = &now
+	report.UpdatedAt = now
+	if err := h.deps.Repos.Reports().Update(c.Request.Context(), report); err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, report)
+}
+
+func (h *CommunityHandler) AdminDismissReport(c *gin.Context) {
+	id := c.Param("reportId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	report, err := h.deps.Repos.Reports().GetByID(c.Request.Context(), id)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	report.Status = "dismissed"
+	report.UpdatedAt = time.Now()
+	if err := h.deps.Repos.Reports().Update(c.Request.Context(), report); err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, report)
+}
+
+// --- Admin Watchlist Stats ---
+
+func (h *CommunityHandler) AdminWatchlistStats(c *gin.Context) {
+	var totalWatchlists int64
+	var totalItems int64
+	items, err := h.deps.CommunityService.AdminListAllWatchlists(c.Request.Context())
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	totalWatchlists = int64(len(items))
+	for _, wl := range items {
+		animeItems, err := h.deps.CommunityService.ListWatchlistAnime(c.Request.Context(), wl.ID)
+		if err == nil {
+			totalItems += int64(len(animeItems))
+		}
+	}
+	utils.Success(c, http.StatusOK, gin.H{
+		"totalWatchlists": totalWatchlists,
+		"totalItems":      totalItems,
+	})
 }

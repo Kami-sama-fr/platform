@@ -36,14 +36,13 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/s
 import { UserAvatar } from '@/components/kami/user-avatar'
 import { SearchBar } from '@/components/kami/search-bar'
 import { Logo } from '@/components/kami/logo'
-import { USERS } from '@/lib/mock-data'
 import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
 
 export function SiteHeader() {
   const t = useTranslations('Public.header')
   const pathname = usePathname()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const [scrolled, setScrolled] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -57,9 +56,8 @@ export function SiteHeader() {
   const NAV_LINKS = [
     { href: '/videos/new', label: t('navNew'), icon: Sparkles },
     { href: '/videos/popular', label: t('navPopular'), icon: TrendingUp },
-    { href: '/simulcast', label: t('navSimulcast'), icon: Calendar },
+    { href: `/${locale}/simulcast`, label: t('navSimulcast'), icon: Calendar },
     { href: '/explore', label: t('navExplorer'), icon: Compass },
-    { href: `/${locale}/calendar`, label: t('navCalendar'), icon: Calendar },
     { href: `/${locale}/community`, label: t('navCommunity'), icon: Users },
   ]
 
@@ -75,12 +73,6 @@ export function SiteHeader() {
   }
 
   /* Explorer dropdown — new 4-column architecture (Découvrir / Contenu / Collections / Recherche). */
-  const EXPLORER_DISCOVER = [
-    { key: 'discoverNew', href: '/explore?sort=newest' },
-    { key: 'navPopular', href: '/explore?sort=popular' },
-    { key: 'discoverTrending', href: '/explore?status=airing' },
-    { key: 'discoverUpcoming', href: '/explore?status=upcoming' },
-  ]
 
   const EXPLORER_CONTENT = [
     { key: 'formatAnime', href: '/explore?format=anime' },
@@ -169,11 +161,11 @@ export function SiteHeader() {
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
               >
-                <UserAvatar user={USERS.me} className="size-7" />
+                <UserAvatar user={{ id: user?.id ?? '', username: user?.email?.split('@')[0] ?? '', displayName: user?.displayName ?? '', avatar: user?.avatarUrl ?? '' }} className="size-7" />
                 <div className="flex flex-col">
-                  <span>{USERS.me.displayName}</span>
+                  <span>{user?.displayName ?? 'User'}</span>
                   <span className="text-xs text-muted-foreground">
-                    @{USERS.me.username}
+                    {user?.email ?? ''}
                   </span>
                 </div>
               </Link>
@@ -288,12 +280,6 @@ export function SiteHeader() {
               </div>
             </AnimatedDropdownContent>
           </DropdownMenu>
-          <DesktopNavLink
-            href={`/${locale}/calendar`}
-            active={pathname.startsWith('/calendar')}
-          >
-            {t('navCalendar')}
-          </DesktopNavLink>
           <span className="mx-1 h-4 w-px bg-white/15" aria-hidden="true" />
           <DesktopNavLink
             href={`/${locale}/community`}
@@ -373,16 +359,16 @@ export function SiteHeader() {
                   aria-label={t('profileMenu')}
                   className="ml-1 rounded-full outline-none transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <UserAvatar user={USERS.me} className="size-8" />
+                  <UserAvatar user={{ id: user?.id ?? '', username: user?.email?.split('@')[0] ?? '', displayName: user?.displayName ?? '', avatar: user?.avatarUrl ?? '' }} className="size-8" />
                 </button>
               </DropdownMenuTrigger>
               <AnimatedDropdownContent open={profileOpen} align="end" className="w-64 border-white/10 bg-black p-0 text-ink shadow-xl">
                 <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
-                  <UserAvatar user={USERS.me} className="size-10" />
+                  <UserAvatar user={{ id: user?.id ?? '', username: user?.email?.split('@')[0] ?? '', displayName: user?.displayName ?? '', avatar: user?.avatarUrl ?? '' }} className="size-10" />
                   <div className="flex flex-col">
-                    <span className="text-sm font-semibold">{USERS.me.displayName}</span>
+                    <span className="text-sm font-semibold">{user?.displayName ?? 'User'}</span>
                     <span className="text-xs text-white/50">
-                      @{USERS.me.username}
+                      {user?.email ?? ''}
                     </span>
                   </div>
                 </div>

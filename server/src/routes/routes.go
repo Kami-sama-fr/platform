@@ -41,6 +41,25 @@ type Dependencies struct {
 	NotificationService *services.NotificationService
 	SearchService       *services.SearchService
 	SettingsService     *services.SettingsService
+	MediaSourceService  *services.MediaSourceService
+	TagService          *services.TagService
+	CategoryService     *services.CategoryService
+	LibraryService      *services.LibraryService
+	DashboardService    *services.DashboardService
+	AnalyticsService    *services.AnalyticsService
+	AdminUserService        *services.AdminUserService
+	AdminProfileService     *services.AdminProfileService
+	AdminRoleService        *services.AdminRoleService
+	AdminPermissionService  *services.AdminPermissionService
+	CalendarService         *services.CalendarService
+	PremiereService         *services.PremiereService
+	SystemService           *services.SystemService
+	SupportService          *services.SupportService
+	ContactAdminService     *services.ContactAdminService
+	FAQService              *services.FAQService
+	ModerationService       *services.ModerationService
+	NotificationAdminService *services.NotificationAdminService
+	SettingsAdminService     *services.SettingsAdminService
 }
 
 func SetupRoutes(router *gin.Engine, deps Dependencies) {
@@ -52,12 +71,31 @@ func SetupRoutes(router *gin.Engine, deps Dependencies) {
 	studio := NewStudioHandler(deps)
 	character := NewCharacterHandler(deps)
 	media := NewMediaHandler(deps)
+	mediaSource := NewMediaSourceHandler(deps)
 	community := NewCommunityHandler(deps)
 	watch := NewWatchHandler(deps)
 	scheduling := NewSchedulingHandler(deps)
 	notification := NewNotificationHandler(deps)
 	search := NewSearchHandler(deps)
 	settings := NewSettingsHandler(deps)
+	settingsAdmin := NewSettingsAdminHandler(deps)
+	tag := NewTagHandler(deps)
+	category := NewCategoryHandler(deps)
+	library := NewLibraryHandler(deps)
+	dashboard := NewDashboardHandler(deps)
+	analytics := NewAnalyticsHandler(deps)
+	adminUser := NewAdminUserHandler(deps)
+	adminProfile := NewAdminProfileHandler(deps)
+	adminRole := NewAdminRoleHandler(deps)
+	adminPermission := NewAdminPermissionHandler(deps)
+	calendar := NewCalendarHandler(deps)
+	premiere := NewPremiereHandler(deps)
+	system := NewSystemHandler(deps)
+	support := NewSupportHandler(deps)
+	contactAdmin := NewContactAdminHandler(deps)
+	faq := NewFAQHandler(deps)
+	moderation := NewModerationHandler(deps)
+	notificationAdmin := NewNotificationAdminHandler(deps)
 
 	router.GET("/health/live", handler.live)
 	router.GET("/health/ready", handler.ready)
@@ -192,6 +230,30 @@ func SetupRoutes(router *gin.Engine, deps Dependencies) {
 			mediaGroup.DELETE("/:mediaId", media.Delete)
 			mediaGroup.GET("/encoding-jobs", media.ListEncodingJobs)
 			mediaGroup.GET("/encoding-jobs/:jobId", media.GetEncodingJob)
+			mediaGroup.POST("/thumbnails/generate", media.GenerateThumbnail)
+			mediaGroup.POST("/encoding-jobs/:jobId/retry", media.RetryEncodingJob)
+			mediaGroup.POST("/encoding-jobs/:jobId/cancel", media.CancelEncodingJob)
+			mediaGroup.GET("/encoding/profiles", media.GetEncodingProfiles)
+			mediaGroup.GET("/uploads", media.ListUploads)
+			mediaGroup.POST("/uploads", media.InitiateUpload)
+			mediaGroup.GET("/uploads/:uploadId", media.GetUploadProgress)
+			mediaGroup.DELETE("/uploads/:uploadId", media.CancelUpload)
+			mediaGroup.POST("/uploads/:uploadId/complete", media.CompleteUpload)
+		}
+
+		sourceGroup := protected.Group("/source")
+		{
+			sourceGroup.GET("/libraries", mediaSource.ListLibraries)
+			sourceGroup.GET("/libraries/:libraryId", mediaSource.GetLibrary)
+			sourceGroup.GET("/items", mediaSource.ListItems)
+			sourceGroup.GET("/items/:itemId", mediaSource.GetItem)
+			sourceGroup.GET("/items/search", mediaSource.SearchItems)
+			sourceGroup.GET("/items/:itemId/stream", mediaSource.GetStreamURL)
+			sourceGroup.GET("/items/:itemId/playback", mediaSource.GetPlaybackInfo)
+			sourceGroup.POST("/items/:itemId/progress", mediaSource.ReportProgress)
+			sourceGroup.POST("/libraries/:libraryId/sync", mediaSource.SyncLibrary)
+			sourceGroup.GET("/libraries/:libraryId/sync", mediaSource.GetSyncStatus)
+			sourceGroup.GET("/sync/logs", mediaSource.ListSyncLogs)
 		}
 
 		communityGroup := protected.Group("/community")
@@ -239,7 +301,23 @@ func SetupRoutes(router *gin.Engine, deps Dependencies) {
 			schedulingGroup.GET("/upcoming", scheduling.ListUpcomingReleases)
 			schedulingGroup.POST("/schedules", scheduling.CreateReleaseSchedule)
 			schedulingGroup.PATCH("/schedules/:scheduleId", scheduling.UpdateReleaseSchedule)
+			schedulingGroup.GET("/releases", scheduling.ListReleases)
+			schedulingGroup.GET("/releases/:releaseId", scheduling.GetRelease)
+			schedulingGroup.DELETE("/releases/:releaseId", scheduling.CancelRelease)
+			schedulingGroup.POST("/releases/:releaseId/publish", scheduling.PublishRelease)
 		}
+
+		schedulingGroup.GET("/calendar", calendar.ListEvents)
+		schedulingGroup.POST("/calendar", calendar.CreateEvent)
+		schedulingGroup.GET("/calendar/:eventId", calendar.GetEvent)
+		schedulingGroup.PATCH("/calendar/:eventId", calendar.UpdateEvent)
+		schedulingGroup.DELETE("/calendar/:eventId", calendar.DeleteEvent)
+
+		schedulingGroup.GET("/premieres", premiere.List)
+		schedulingGroup.POST("/premieres", premiere.Create)
+		schedulingGroup.GET("/premieres/:premiereId", premiere.GetByID)
+		schedulingGroup.PATCH("/premieres/:premiereId", premiere.Update)
+		schedulingGroup.DELETE("/premieres/:premiereId", premiere.Delete)
 
 		notificationGroup := protected.Group("/notifications")
 		{
@@ -270,6 +348,278 @@ func SetupRoutes(router *gin.Engine, deps Dependencies) {
 			settingsGroup.GET("/:key", settings.GetByKey)
 			settingsGroup.PUT("/:key", settings.Upsert)
 			settingsGroup.DELETE("/:key", settings.Delete)
+
+			settingsGroup.GET("/general", settingsAdmin.GetGeneral)
+			settingsGroup.PUT("/general", settingsAdmin.UpdateGeneral)
+
+			settingsGroup.GET("/security", settingsAdmin.GetSecurity)
+			settingsGroup.PUT("/security", settingsAdmin.UpdateSecurity)
+			settingsGroup.GET("/security/sessions", settingsAdmin.GetSessions)
+			settingsGroup.PUT("/security/sessions", settingsAdmin.UpdateSessions)
+			settingsGroup.GET("/security/rate-limit", settingsAdmin.GetRateLimit)
+			settingsGroup.PUT("/security/rate-limit", settingsAdmin.UpdateRateLimit)
+			settingsGroup.GET("/security/2fa", settingsAdmin.Get2FA)
+			settingsGroup.PUT("/security/2fa", settingsAdmin.Update2FA)
+
+			settingsGroup.GET("/branding", settingsAdmin.GetBranding)
+			settingsGroup.PUT("/branding", settingsAdmin.UpdateBranding)
+			settingsGroup.POST("/branding/logo", settingsAdmin.UploadLogo)
+			settingsGroup.POST("/branding/favicon", settingsAdmin.UploadFavicon)
+			settingsGroup.POST("/branding/preview", settingsAdmin.PreviewBranding)
+
+			settingsGroup.GET("/email", settingsAdmin.GetEmail)
+			settingsGroup.PUT("/email", settingsAdmin.UpdateEmail)
+			settingsGroup.POST("/email/test", settingsAdmin.SendTestEmail)
+			settingsGroup.GET("/email/templates", settingsAdmin.ListEmailTemplates)
+			settingsGroup.PATCH("/email/templates/:templateId", settingsAdmin.UpdateEmailTemplate)
+			settingsGroup.GET("/email/logs", settingsAdmin.ListEmailLogs)
+
+			settingsGroup.GET("/seo/pages", settingsAdmin.ListSEOPages)
+			settingsGroup.PUT("/seo/pages/:pagePath", settingsAdmin.UpdateSEOPage)
+			settingsGroup.GET("/seo/sitemap", settingsAdmin.GetSitemap)
+			settingsGroup.GET("/seo/robots", settingsAdmin.GetRobots)
+
+			settingsGroup.GET("/storage", settingsAdmin.GetStorage)
+			settingsGroup.PUT("/storage", settingsAdmin.UpdateStorage)
+			settingsGroup.POST("/storage/test", settingsAdmin.TestStorage)
+			settingsGroup.GET("/storage/usage", settingsAdmin.GetStorageUsage)
+			settingsGroup.GET("/storage/buckets", settingsAdmin.ListBuckets)
+
+			settingsGroup.GET("/cdn", settingsAdmin.GetCDN)
+			settingsGroup.PUT("/cdn", settingsAdmin.UpdateCDN)
+			settingsGroup.POST("/cdn/purge", settingsAdmin.PurgeCDN)
+			settingsGroup.GET("/cdn/stats", settingsAdmin.GetCDNStats)
+
+			settingsGroup.GET("/domains", settingsAdmin.ListDomains)
+			settingsGroup.POST("/domains", settingsAdmin.CreateDomain)
+			settingsGroup.GET("/domains/:domainId", settingsAdmin.GetDomain)
+			settingsGroup.DELETE("/domains/:domainId", settingsAdmin.DeleteDomain)
+			settingsGroup.POST("/domains/:domainId/verify", settingsAdmin.VerifyDomain)
+			settingsGroup.POST("/domains/:domainId/ssl", settingsAdmin.GenerateSSL)
+
+			settingsGroup.GET("/apis", settingsAdmin.ListAPIKeys)
+			settingsGroup.POST("/apis", settingsAdmin.CreateAPIKey)
+			settingsGroup.GET("/apis/:keyId", settingsAdmin.GetAPIKey)
+			settingsGroup.PATCH("/apis/:keyId", settingsAdmin.UpdateAPIKey)
+			settingsGroup.DELETE("/apis/:keyId", settingsAdmin.DeleteAPIKey)
+			settingsGroup.GET("/apis/:keyId/usage", settingsAdmin.GetAPIKeyUsage)
+
+			settingsGroup.PUT("/oauth/:provider", settingsAdmin.UpdateOAuth)
+			settingsGroup.POST("/oauth/:provider/test", settingsAdmin.TestOAuth)
+			settingsGroup.GET("/oauth/:provider/callback-url", settingsAdmin.GetCallbackURL)
+
+			settingsGroup.GET("/integrations", settingsAdmin.ListIntegrations)
+			settingsGroup.POST("/integrations", settingsAdmin.CreateIntegration)
+			settingsGroup.GET("/integrations/:integrationId", settingsAdmin.GetIntegration)
+			settingsGroup.PATCH("/integrations/:integrationId", settingsAdmin.UpdateIntegration)
+			settingsGroup.DELETE("/integrations/:integrationId", settingsAdmin.DeleteIntegration)
+			settingsGroup.POST("/integrations/:integrationId/test", settingsAdmin.TestIntegration)
+			settingsGroup.GET("/integrations/:integrationId/logs", settingsAdmin.GetIntegrationLogs)
+
+			settingsGroup.GET("/maintenance", settingsAdmin.GetMaintenance)
+			settingsGroup.PUT("/maintenance", settingsAdmin.UpdateMaintenance)
+			settingsGroup.POST("/maintenance/cache-clear", settingsAdmin.ClearCache)
+			settingsGroup.POST("/maintenance/db-optimize", settingsAdmin.OptimizeDB)
+			settingsGroup.GET("/maintenance/jobs", settingsAdmin.ListMaintenanceJobs)
+		}
+
+		tagGroup := protected.Group("/tags")
+		{
+			tagGroup.GET("", tag.List)
+			tagGroup.POST("", tag.Create)
+			tagGroup.GET("/:tagId", tag.GetByID)
+			tagGroup.GET("/slug/:slug", tag.GetBySlug)
+			tagGroup.PATCH("/:tagId", tag.Update)
+			tagGroup.DELETE("/:tagId", tag.Delete)
+		}
+
+		categoryGroup := protected.Group("/categories")
+		{
+			categoryGroup.GET("", category.List)
+			categoryGroup.POST("", category.Create)
+			categoryGroup.GET("/:categoryId", category.GetByID)
+			categoryGroup.GET("/slug/:slug", category.GetBySlug)
+			categoryGroup.PATCH("/:categoryId", category.Update)
+			categoryGroup.DELETE("/:categoryId", category.Delete)
+		}
+
+		libraryGroup := protected.Group("/libraries")
+		{
+			libraryGroup.GET("", library.List)
+			libraryGroup.POST("", library.Create)
+			libraryGroup.GET("/:libraryId", library.GetByID)
+			libraryGroup.PATCH("/:libraryId", library.Update)
+			libraryGroup.DELETE("/:libraryId", library.Delete)
+		}
+
+		dashboardGroup := protected.Group("/dashboard")
+		{
+			dashboardGroup.GET("/stats", dashboard.GetStats)
+			dashboardGroup.GET("/weekly-views", dashboard.GetWeeklyViews)
+			dashboardGroup.GET("/subscription-distribution", dashboard.GetSubscriptionDistribution)
+			dashboardGroup.GET("/top-anime", dashboard.GetTopAnime)
+			dashboardGroup.GET("/recent-uploads", dashboard.GetRecentUploads)
+		}
+
+		analyticsGroup := protected.Group("/analytics")
+		{
+			analyticsGroup.GET("/overview", analytics.GetOverview)
+			analyticsGroup.GET("/overview/period", analytics.GetOverviewByPeriod)
+			analyticsGroup.GET("/watch-time", analytics.GetWatchTime)
+			analyticsGroup.GET("/watch-time/by-anime", analytics.GetWatchTimeByAnime)
+			analyticsGroup.GET("/watch-time/by-episode", analytics.GetWatchTimeByEpisode)
+			analyticsGroup.GET("/watch-time/histogram", analytics.GetWatchTimeHistogram)
+			analyticsGroup.GET("/devices", analytics.GetDevices)
+			analyticsGroup.GET("/devices/browsers", analytics.GetDevicesBrowsers)
+			analyticsGroup.GET("/devices/os", analytics.GetDevicesOS)
+			analyticsGroup.GET("/popular", analytics.GetPopular)
+			analyticsGroup.GET("/popular/trending", analytics.GetPopularTrending)
+			analyticsGroup.GET("/popular/new", analytics.GetPopularNew)
+			analyticsGroup.GET("/geography", analytics.GetGeography)
+			analyticsGroup.GET("/geography/top-countries", analytics.GetGeographyTopCountries)
+			analyticsGroup.GET("/active-users", analytics.GetActiveUsers)
+			analyticsGroup.GET("/active-users/retention", analytics.GetActiveUsersRetention)
+			analyticsGroup.GET("/active-users/sessions", analytics.GetActiveUsersSessions)
+		}
+
+		systemHealthGroup := protected.Group("/system/health")
+		{
+			systemHealthGroup.GET("/services", system.HealthServices)
+			systemHealthGroup.GET("/uptime", system.HealthUptime)
+			systemHealthGroup.GET("/metrics", system.HealthMetrics)
+		}
+
+		systemLogsGroup := protected.Group("/system/logs")
+		{
+			systemLogsGroup.GET("", system.ListLogs)
+			systemLogsGroup.GET("/search", system.SearchLogs)
+			systemLogsGroup.GET("/:logId", system.GetLogByID)
+		}
+
+		systemQueueGroup := protected.Group("/system/queue")
+		{
+			systemQueueGroup.GET("", system.GetQueueStatus)
+			systemQueueGroup.GET("/jobs", system.ListQueueJobs)
+			systemQueueGroup.POST("/jobs/:jobId/retry", system.RetryQueueJob)
+			systemQueueGroup.POST("/jobs/:jobId/cancel", system.CancelQueueJob)
+			systemQueueGroup.POST("/flush", system.FlushQueue)
+		}
+
+		systemCacheGroup := protected.Group("/system/cache")
+		{
+			systemCacheGroup.GET("", system.GetCacheStatus)
+			systemCacheGroup.POST("/flush", system.FlushCache)
+			systemCacheGroup.POST("/flush/:pattern", system.FlushCacheByPattern)
+			systemCacheGroup.GET("/keys", system.ListCacheKeys)
+			systemCacheGroup.DELETE("/keys/:key", system.DeleteCacheKey)
+		}
+
+		systemSearchGroup := protected.Group("/system/search")
+		{
+			systemSearchGroup.GET("", system.GetSearchStatus)
+			systemSearchGroup.POST("/reindex", system.TriggerReindex)
+			systemSearchGroup.GET("/indexes", system.ListSearchIndexes)
+			systemSearchGroup.GET("/indexes/:indexName", system.GetSearchIndexStats)
+			systemSearchGroup.POST("/indexes/:indexName/update", system.UpdateSearchIndex)
+		}
+
+		systemBgJobsGroup := protected.Group("/system/background-jobs")
+		{
+			systemBgJobsGroup.GET("", system.ListBackgroundJobs)
+			systemBgJobsGroup.POST("/:jobId/run", system.RunBackgroundJob)
+			systemBgJobsGroup.POST("/:jobId/pause", system.PauseBackgroundJob)
+			systemBgJobsGroup.POST("/:jobId/resume", system.ResumeBackgroundJob)
+			systemBgJobsGroup.GET("/history", system.GetBackgroundJobHistory)
+		}
+
+		adminGroup := protected.Group("/admin")
+		{
+			adminGroup.GET("/users", adminUser.List)
+			adminGroup.GET("/users/:userId", adminUser.GetByID)
+			adminGroup.PATCH("/users/:userId", adminUser.Update)
+			adminGroup.DELETE("/users/:userId", adminUser.Delete)
+			adminGroup.POST("/users/:userId/disable", adminUser.Disable)
+			adminGroup.POST("/users/:userId/enable", adminUser.Enable)
+			adminGroup.GET("/users/:userId/sessions", adminUser.ListSessions)
+			adminGroup.DELETE("/users/:userId/sessions/:sessionId", adminUser.RevokeSession)
+
+			adminGroup.GET("/profiles", adminProfile.List)
+			adminGroup.GET("/profiles/:userId", adminProfile.GetByUserID)
+			adminGroup.PATCH("/profiles/:userId", adminProfile.Update)
+			adminGroup.DELETE("/profiles/:userId", adminProfile.Delete)
+
+			adminGroup.GET("/roles", adminRole.List)
+			adminGroup.POST("/roles", adminRole.Create)
+			adminGroup.GET("/roles/:roleId", adminRole.GetByID)
+			adminGroup.PATCH("/roles/:roleId", adminRole.Update)
+			adminGroup.DELETE("/roles/:roleId", adminRole.Delete)
+			adminGroup.POST("/roles/:roleId/assign", adminRole.Assign)
+			adminGroup.DELETE("/roles/:roleId/assign/:userId", adminRole.Unassign)
+
+			adminGroup.GET("/permissions", adminPermission.GetMatrix)
+			adminGroup.PATCH("/permissions", adminPermission.UpdateRolePermissions)
+			adminGroup.GET("/permissions/effective/:userId", adminPermission.GetEffectivePermissions)
+
+			adminGroup.GET("/comments", community.AdminListComments)
+			adminGroup.GET("/comments/:commentId", community.AdminGetComment)
+			adminGroup.PATCH("/comments/:commentId", community.AdminModerateComment)
+			adminGroup.DELETE("/comments/:commentId", community.AdminDeleteComment)
+			adminGroup.POST("/comments/:commentId/approve", community.AdminApproveComment)
+			adminGroup.POST("/comments/:commentId/flag", community.AdminFlagComment)
+
+			adminGroup.GET("/reviews", community.AdminListReviews)
+			adminGroup.POST("/reviews/:reviewId/feature", community.AdminFeatureReview)
+
+			adminGroup.GET("/reports", community.AdminListReports)
+			adminGroup.GET("/reports/:reportId", community.AdminGetReport)
+			adminGroup.PATCH("/reports/:reportId", community.AdminProcessReport)
+			adminGroup.POST("/reports/:reportId/resolve", community.AdminResolveReport)
+			adminGroup.POST("/reports/:reportId/dismiss", community.AdminDismissReport)
+
+			adminGroup.GET("/moderations", moderation.GetQueue)
+			adminGroup.GET("/moderations/:moderationId", moderation.GetItem)
+			adminGroup.POST("/moderations/:moderationId/approve", moderation.Approve)
+			adminGroup.POST("/moderations/:moderationId/reject", moderation.Reject)
+			adminGroup.POST("/moderations/:moderationId/escalate", moderation.Escalate)
+
+			adminGroup.GET("/watchlists/stats", community.AdminWatchlistStats)
+
+			adminGroup.GET("/notifications/templates", notificationAdmin.ListTemplates)
+			adminGroup.POST("/notifications/templates", notificationAdmin.CreateTemplate)
+			adminGroup.PATCH("/notifications/templates/:templateId", notificationAdmin.UpdateTemplate)
+			adminGroup.DELETE("/notifications/templates/:templateId", notificationAdmin.DeleteTemplate)
+			adminGroup.POST("/notifications/send", notificationAdmin.Send)
+			adminGroup.GET("/notifications/history", notificationAdmin.GetHistory)
+		}
+
+		supportGroup := protected.Group("/support")
+		{
+			supportGroup.GET("/tickets", support.ListTickets)
+			supportGroup.POST("/tickets", support.CreateTicket)
+			supportGroup.GET("/tickets/:ticketId", support.GetTicket)
+			supportGroup.PATCH("/tickets/:ticketId", support.UpdateTicket)
+			supportGroup.POST("/tickets/:ticketId/reply", support.ReplyToTicket)
+			supportGroup.POST("/tickets/:ticketId/close", support.CloseTicket)
+			supportGroup.POST("/tickets/:ticketId/escalate", support.EscalateTicket)
+
+			supportGroup.GET("/contact", contactAdmin.List)
+			supportGroup.GET("/contact/:messageId", contactAdmin.GetByID)
+			supportGroup.PATCH("/contact/:messageId", contactAdmin.Update)
+			supportGroup.POST("/contact/:messageId/reply", contactAdmin.Reply)
+			supportGroup.DELETE("/contact/:messageId", contactAdmin.Delete)
+
+			supportGroup.GET("/logs", support.SupportLogs)
+			supportGroup.GET("/logs/export", support.ExportLogs)
+		}
+
+		adminFaqGroup := protected.Group("/support/faq")
+		{
+			adminFaqGroup.GET("", faq.List)
+			adminFaqGroup.POST("", faq.Create)
+			adminFaqGroup.GET("/:faqId", faq.GetByID)
+			adminFaqGroup.PATCH("/:faqId", faq.Update)
+			adminFaqGroup.DELETE("/:faqId", faq.Delete)
+			adminFaqGroup.PUT("/reorder", faq.Reorder)
 		}
 	}
 }

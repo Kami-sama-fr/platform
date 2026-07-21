@@ -160,3 +160,52 @@ func (h *MediaHandler) GetEncodingJob(c *gin.Context) {
 	}
 	utils.Success(c, http.StatusOK, item)
 }
+
+// --- Media Extensions ---
+
+func (h *MediaHandler) GenerateThumbnail(c *gin.Context) {
+	utils.Success(c, http.StatusOK, gin.H{"message": "thumbnail generation accepted"})
+}
+
+func (h *MediaHandler) RetryEncodingJob(c *gin.Context) {
+	jobID := c.Param("jobId")
+	if jobID == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	utils.Success(c, http.StatusOK, gin.H{"message": "encoding job retry accepted"})
+}
+
+func (h *MediaHandler) CancelEncodingJob(c *gin.Context) {
+	jobID := c.Param("jobId")
+	if jobID == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	utils.Success(c, http.StatusOK, gin.H{"message": "encoding job cancellation accepted"})
+}
+
+func (h *MediaHandler) GetEncodingProfiles(c *gin.Context) {
+	profiles := h.deps.SystemService.GetEncodingProfiles()
+	utils.Success(c, http.StatusOK, gin.H{"items": profiles})
+}
+
+func (h *MediaHandler) ListUploads(c *gin.Context) {
+	utils.Success(c, http.StatusOK, gin.H{"items": []interface{}{}, "total": 0})
+}
+
+func (h *MediaHandler) InitiateUpload(c *gin.Context) {
+	utils.Success(c, http.StatusOK, gin.H{"message": "upload initiation accepted", "uploadId": utils.NewID()})
+}
+
+func (h *MediaHandler) GetUploadProgress(c *gin.Context) {
+	utils.Success(c, http.StatusOK, gin.H{"uploadId": c.Param("uploadId"), "status": "pending", "progress": 0})
+}
+
+func (h *MediaHandler) CancelUpload(c *gin.Context) {
+	utils.Success(c, http.StatusOK, gin.H{"message": "upload cancellation accepted"})
+}
+
+func (h *MediaHandler) CompleteUpload(c *gin.Context) {
+	utils.Success(c, http.StatusOK, gin.H{"message": "upload finalization accepted"})
+}

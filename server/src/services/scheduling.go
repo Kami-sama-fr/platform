@@ -159,3 +159,25 @@ func (s *SchedulingService) UpdateReleaseSchedule(ctx context.Context, userID, i
 	}
 	return schedule, nil
 }
+
+func (s *SchedulingService) GetReleaseSchedule(ctx context.Context, id string) (*models.ReleaseSchedule, error) {
+	return s.repos.ReleaseSchedules().GetByID(ctx, id)
+}
+
+func (s *SchedulingService) UpdateReleaseScheduleStatus(ctx context.Context, id, status string) (*models.ReleaseSchedule, error) {
+	schedule, err := s.repos.ReleaseSchedules().GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	schedule.Status = status
+	schedule.UpdatedAt = time.Now().UTC()
+	if err := s.repos.ReleaseSchedules().Update(ctx, schedule); err != nil {
+		return nil, err
+	}
+	return schedule, nil
+}
+
+// ListReleases is an alias for ListUpcomingReleases without limit
+func (s *SchedulingService) ListReleases(ctx context.Context, limit int) ([]models.ReleaseSchedule, error) {
+	return s.repos.ReleaseSchedules().ListUpcoming(ctx, limit)
+}

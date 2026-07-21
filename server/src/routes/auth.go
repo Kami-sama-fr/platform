@@ -344,11 +344,13 @@ func (h *apiHandler) oauthCallback(c *gin.Context) {
 	}
 	result, err := h.deps.OAuthService.HandleCallback(c.Request.Context(), provider, code, state, requestMetadata(c))
 	if err != nil {
-		utils.Error(c, err)
+		frontendURL := h.deps.Config.App.FrontendURL
+		c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error="+err.Error())
 		return
 	}
 	h.deps.OAuthService.SetOAuthCookies(c, result)
-	utils.Success(c, http.StatusOK, result)
+	frontendURL := h.deps.Config.App.FrontendURL
+	c.Redirect(http.StatusFound, frontendURL+"/auth/callback")
 }
 
 func (h *apiHandler) listOAuthAccounts(c *gin.Context) {

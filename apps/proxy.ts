@@ -30,11 +30,11 @@ function isValidLocale(locale: string): locale is Locale {
 const AUTH_PATHS = ["/login", "/register"];
 const PROTECTED_PATHS = ["/dash", "/profile"];
 const NO_LOCALE_PATHS = ["/discord", "/dash", "/profile", "/login", "/register", "/api"];
+const REFRESH_COOKIE_NAME = "aether_account_refresh";
 
-function isValidJWT(token: string | undefined): boolean {
-  if (!token) return false;
-  const parts = token.split(".");
-  return parts.length === 3;
+function isAuthCookiePresent(request: NextRequest): boolean {
+  const cookie = request.cookies.get(REFRESH_COOKIE_NAME);
+  return Boolean(cookie?.value && cookie.value.length > 0);
 }
 
 export default function proxy(request: NextRequest) {
@@ -59,9 +59,7 @@ export default function proxy(request: NextRequest) {
 
   const isProtectedPath = PROTECTED_PATHS.some((p) => pathname.startsWith(p));
   if (isProtectedPath) {
-    const authCookie = request.cookies.get("auth_token");
-    const isValid = isValidJWT(authCookie?.value);
-    if (!isValid) {
+    if (!isAuthCookiePresent(request)) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirect", pathname);
       return NextResponse.redirect(loginUrl);

@@ -177,6 +177,48 @@ type EncodingJobRepository interface {
 	Update(ctx context.Context, job *models.EncodingJob) error
 }
 
+// FAQ repository
+type FAQRepository interface {
+	Create(ctx context.Context, faq *models.FAQ) error
+	GetByID(ctx context.Context, id string) (*models.FAQ, error)
+	List(ctx context.Context, category string, activeOnly bool) ([]models.FAQ, error)
+	Update(ctx context.Context, faq *models.FAQ) error
+	Delete(ctx context.Context, id string) error
+	UpdateSortOrders(ctx context.Context, orders map[string]int) error
+}
+
+// Ticket repository
+type TicketRepository interface {
+	Create(ctx context.Context, ticket *models.Ticket) error
+	GetByID(ctx context.Context, id string) (*models.Ticket, error)
+	List(ctx context.Context, status, priority, category string, limit, offset int) ([]models.Ticket, int64, error)
+	Update(ctx context.Context, ticket *models.Ticket) error
+}
+
+// TicketReply repository
+type TicketReplyRepository interface {
+	Create(ctx context.Context, reply *models.TicketReply) error
+	ListByTicket(ctx context.Context, ticketID string, limit, offset int) ([]models.TicketReply, int64, error)
+}
+
+// ContactMessage repository
+type ContactMessageRepository interface {
+	Create(ctx context.Context, msg *models.ContactMessage) error
+	GetByID(ctx context.Context, id string) (*models.ContactMessage, error)
+	List(ctx context.Context, status string, limit, offset int) ([]models.ContactMessage, int64, error)
+	Update(ctx context.Context, msg *models.ContactMessage) error
+	Delete(ctx context.Context, id string) error
+}
+
+// NotificationTemplate repository
+type NotificationTemplateRepository interface {
+	Create(ctx context.Context, tmpl *models.NotificationTemplate) error
+	GetByID(ctx context.Context, id string) (*models.NotificationTemplate, error)
+	List(ctx context.Context) ([]models.NotificationTemplate, error)
+	Update(ctx context.Context, tmpl *models.NotificationTemplate) error
+	Delete(ctx context.Context, id string) error
+}
+
 // Review repository
 type ReviewRepository interface {
 	Create(ctx context.Context, review *models.Review) error
@@ -185,6 +227,8 @@ type ReviewRepository interface {
 	GetByUserAndAnime(ctx context.Context, userID, animeID string) (*models.Review, error)
 	Update(ctx context.Context, review *models.Review) error
 	Delete(ctx context.Context, id string) error
+	ListAll(ctx context.Context, rating int, authorID, animeID string, limit, offset int) ([]models.Review, int64, error)
+	ListFlagged(ctx context.Context) ([]models.Review, error)
 }
 
 // Comment repository
@@ -195,6 +239,8 @@ type CommentRepository interface {
 	ListByReview(ctx context.Context, reviewID string, limit, offset int) ([]models.Comment, int64, error)
 	Update(ctx context.Context, comment *models.Comment) error
 	Delete(ctx context.Context, id string) error
+	ListAll(ctx context.Context, status, authorID, animeID string, limit, offset int) ([]models.Comment, int64, error)
+	ListPending(ctx context.Context) ([]models.Comment, error)
 }
 
 // Report repository
@@ -203,6 +249,8 @@ type ReportRepository interface {
 	GetByID(ctx context.Context, id string) (*models.Report, error)
 	List(ctx context.Context, status string, limit, offset int) ([]models.Report, int64, error)
 	Update(ctx context.Context, report *models.Report) error
+	ListAll(ctx context.Context, status, targetType string, limit, offset int) ([]models.Report, int64, error)
+	ListPending(ctx context.Context) ([]models.Report, error)
 }
 
 // Watchlist repository
@@ -210,6 +258,7 @@ type WatchlistRepository interface {
 	Create(ctx context.Context, watchlist *models.Watchlist) error
 	GetByID(ctx context.Context, id string) (*models.Watchlist, error)
 	ListByUser(ctx context.Context, userID string) ([]models.Watchlist, error)
+	ListAll(ctx context.Context) ([]models.Watchlist, error)
 	Update(ctx context.Context, watchlist *models.Watchlist) error
 	Delete(ctx context.Context, id string) error
 	AddAnime(ctx context.Context, item *models.WatchlistItem) error
@@ -298,6 +347,102 @@ type WorkspaceSSOConfigRepository interface {
 	Upsert(ctx context.Context, config *models.WorkspaceSSOConfig) error
 }
 
+// Tag repository
+type TagRepository interface {
+	Create(ctx context.Context, tag *models.Tag) error
+	GetByID(ctx context.Context, id string) (*models.Tag, error)
+	GetBySlug(ctx context.Context, slug string) (*models.Tag, error)
+	List(ctx context.Context) ([]models.Tag, error)
+	Update(ctx context.Context, tag *models.Tag) error
+	Delete(ctx context.Context, id string) error
+}
+
+// Category repository
+type CategoryRepository interface {
+	Create(ctx context.Context, category *models.Category) error
+	GetByID(ctx context.Context, id string) (*models.Category, error)
+	GetBySlug(ctx context.Context, slug string) (*models.Category, error)
+	List(ctx context.Context) ([]models.Category, error)
+	Update(ctx context.Context, category *models.Category) error
+	Delete(ctx context.Context, id string) error
+}
+
+// Role repository
+type RoleRepository interface {
+	Create(ctx context.Context, role *models.Role) error
+	GetByID(ctx context.Context, id string) (*models.Role, error)
+	GetBySlug(ctx context.Context, slug string) (*models.Role, error)
+	List(ctx context.Context) ([]models.Role, error)
+	Update(ctx context.Context, role *models.Role) error
+	Delete(ctx context.Context, id string) error
+}
+
+// UserRole repository
+type UserRoleRepository interface {
+	Assign(ctx context.Context, userRole *models.UserRole) error
+	Remove(ctx context.Context, userID, roleID string) error
+	GetByUserAndRole(ctx context.Context, userID, roleID string) (*models.UserRole, error)
+	ListByUser(ctx context.Context, userID string) ([]models.UserRole, error)
+	ListByRole(ctx context.Context, roleID string) ([]models.UserRole, error)
+	CountByRole(ctx context.Context, roleID string) (int64, error)
+}
+
+// Library (SourceConfig) repository
+type LibraryRepository interface {
+	Create(ctx context.Context, library *models.SourceConfig) error
+	GetByID(ctx context.Context, id string) (*models.SourceConfig, error)
+	GetBySourceType(ctx context.Context, sourceType string) (*models.SourceConfig, error)
+	List(ctx context.Context) ([]models.SourceConfig, error)
+	Update(ctx context.Context, library *models.SourceConfig) error
+	Delete(ctx context.Context, id string) error
+}
+
+// DomainConfig repository
+type DomainConfigRepository interface {
+	Create(ctx context.Context, config *models.DomainConfig) error
+	GetByID(ctx context.Context, id string) (*models.DomainConfig, error)
+	List(ctx context.Context) ([]models.DomainConfig, error)
+	Update(ctx context.Context, config *models.DomainConfig) error
+	Delete(ctx context.Context, id string) error
+}
+
+// ApiKey repository
+type ApiKeyRepository interface {
+	Create(ctx context.Context, key *models.ApiKey) error
+	GetByID(ctx context.Context, id string) (*models.ApiKey, error)
+	List(ctx context.Context) ([]models.ApiKey, error)
+	Update(ctx context.Context, key *models.ApiKey) error
+	Delete(ctx context.Context, id string) error
+}
+
+// Integration repository
+type IntegrationRepository interface {
+	Create(ctx context.Context, integration *models.Integration) error
+	GetByID(ctx context.Context, id string) (*models.Integration, error)
+	List(ctx context.Context) ([]models.Integration, error)
+	Update(ctx context.Context, integration *models.Integration) error
+	Delete(ctx context.Context, id string) error
+}
+
+// CalendarEvent repository
+type CalendarEventRepository interface {
+	Create(ctx context.Context, event *models.CalendarEvent) error
+	GetByID(ctx context.Context, id string) (*models.CalendarEvent, error)
+	List(ctx context.Context) ([]models.CalendarEvent, error)
+	ListByDateRange(ctx context.Context, startDate, endDate string) ([]models.CalendarEvent, error)
+	Update(ctx context.Context, event *models.CalendarEvent) error
+	Delete(ctx context.Context, id string) error
+}
+
+// Premiere repository
+type PremiereRepository interface {
+	Create(ctx context.Context, premiere *models.Premiere) error
+	GetByID(ctx context.Context, id string) (*models.Premiere, error)
+	List(ctx context.Context) ([]models.Premiere, error)
+	Update(ctx context.Context, premiere *models.Premiere) error
+	Delete(ctx context.Context, id string) error
+}
+
 type RepositorySet interface {
 	Users() UserRepository
 	UserSettings() UserSettingsRepository
@@ -332,4 +477,14 @@ type RepositorySet interface {
 	Contacts() ContactRepository
 	ContactGroups() ContactGroupRepository
 	WorkspaceSSOConfigs() WorkspaceSSOConfigRepository
+	Tags() TagRepository
+	Categories() CategoryRepository
+	Libraries() LibraryRepository
+	Roles() RoleRepository
+	UserRoles() UserRoleRepository
+	DomainConfigs() DomainConfigRepository
+	ApiKeys() ApiKeyRepository
+	Integrations() IntegrationRepository
+	CalendarEvents() CalendarEventRepository
+	Premieres() PremiereRepository
 }

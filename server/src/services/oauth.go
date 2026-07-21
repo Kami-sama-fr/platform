@@ -116,6 +116,10 @@ func (s *OAuthService) oauthConfig(provider string) (*oauth2.Config, config.OAut
 		pc = s.cfg.Google
 	case "github":
 		pc = s.cfg.GitHub
+	case "discord":
+		pc = s.cfg.Discord
+	case "apple":
+		pc = s.cfg.Apple
 	default:
 		return nil, pc, utils.ErrOAuthProviderNotConfigured
 	}
@@ -124,9 +128,22 @@ func (s *OAuthService) oauthConfig(provider string) (*oauth2.Config, config.OAut
 	}
 	endpoint := google.Endpoint
 	scopes := []string{"openid", "profile", "email"}
-	if provider == "github" {
+	switch provider {
+	case "github":
 		endpoint = github.Endpoint
 		scopes = []string{"read:user", "user:email"}
+	case "discord":
+		endpoint = oauth2.Endpoint{
+			AuthURL:  "https://discord.com/api/oauth2/authorize",
+			TokenURL: "https://discord.com/api/oauth2/token",
+		}
+		scopes = []string{"identify", "email"}
+	case "apple":
+		endpoint = oauth2.Endpoint{
+			AuthURL:  "https://appleid.apple.com/auth/authorize",
+			TokenURL: "https://appleid.apple.com/auth/token",
+		}
+		scopes = []string{"name", "email"}
 	}
 	cfg := &oauth2.Config{
 		ClientID:     pc.ClientID,
@@ -174,6 +191,9 @@ func (s *OAuthService) GetAuthorizationURL(ctx context.Context, provider, action
 	}
 
 	authURL := cfg.AuthCodeURL(nonce, oauth2.AccessTypeOffline)
+	if provider == "apple" {
+		authURL += "&response_mode=form_post"
+	}
 	return authURL, nil
 }
 
@@ -206,7 +226,14 @@ func (s *OAuthService) HandleCallback(ctx context.Context, provider, code, state
 		return nil, fmt.Errorf("token exchange: %w", err)
 	}
 
-	userInfo, err := s.fetchUserInfo(ctx, provider, token.AccessToken)
+	accessToken := token.AccessToken
+	if provider == "apple" {
+		if idToken, ok := token.Extra("id_token").(string); ok && idToken != "" {
+			accessToken = idToken
+		}
+	}
+
+	userInfo, err := s.fetchUserInfo(ctx, provider, accessToken)
 	if err != nil {
 		return nil, fmt.Errorf("fetch user info: %w", err)
 	}
@@ -227,6 +254,10 @@ func (s *OAuthService) fetchUserInfo(ctx context.Context, provider, accessToken 
 		return s.fetchGoogleUserInfo(ctx, accessToken)
 	case "github":
 		return s.fetchGitHubUserInfo(ctx, accessToken)
+	case "discord":
+		return s.fetchDiscordUserInfo(ctx, accessToken)
+	case "apple":
+		return s.fetchAppleUserInfo(ctx, accessToken)
 	default:
 		return nil, utils.ErrOAuthProviderNotConfigured
 	}
@@ -326,6 +357,88 @@ func (s *OAuthService) fetchGitHubUserInfo(ctx context.Context, accessToken stri
 		Email:       strings.ToLower(strings.TrimSpace(data.Email)),
 		DisplayName: displayName,
 		AvatarURL:   data.AvatarURL,
+	}, nil
+}
+
+func (s *OAuthService) fetchDiscordUserInfo(ctx context.Context, accessToken string) (*OAuthUserInfo, error) {
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, "https://discord.com/api/users/@me", nil)
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+
+	var data struct {
+		ID            string `json:"id"`
+		Email         string `json:"email"`
+		Username      string `json:"username"`
+		GlobalName    string `json:"global_name"`
+		Avatar        string `json:"avatar"`
+		Verified      bool   `json:"verified"`
+	}
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil, err
+	}
+
+	if data.Email == "" {
+		return nil, errors.New("discord account has no email")
+	}
+
+	displayName := data.GlobalName
+	if displayName == "" {
+		displayName = data.Username
+	}
+
+	avatarURL := ""
+	if data.Avatar != "" {
+		avatarURL = fmt.Sprintf("https://cdn.discordapp.com/avatars/%s/%s.png", data.ID, data.Avatar)
+	}
+
+	return &OAuthUserInfo{
+		ID:          data.ID,
+		Email:       strings.ToLower(strings.TrimSpace(data.Email)),
+		DisplayName: displayName,
+		AvatarURL:   avatarURL,
+	}, nil
+}
+
+func (s *OAuthService) fetchAppleUserInfo(ctx context.Context, accessToken string) (*OAuthUserInfo, error) {
+	parts := strings.Split(accessToken, ".")
+	if len(parts) != 3 {
+		return nil, errors.New("invalid apple id token")
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("decode apple id token: %w", err)
+	}
+	var claims struct {
+		Sub   string `json:"sub"`
+		Email string `json:"email"`
+		Name  *struct {
+			FirstName string `json:"firstName"`
+			LastName  string `json:"lastName"`
+		} `json:"name"`
+	}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return nil, fmt.Errorf("parse apple id token: %w", err)
+	}
+	if claims.Email == "" {
+		return nil, errors.New("apple account has no email")
+	}
+	displayName := ""
+	if claims.Name != nil {
+		displayName = strings.TrimSpace(claims.Name.FirstName + " " + claims.Name.LastName)
+	}
+	if displayName == "" {
+		displayName = strings.Split(claims.Email, "@")[0]
+	}
+	return &OAuthUserInfo{
+		ID:          claims.Sub,
+		Email:       strings.ToLower(strings.TrimSpace(claims.Email)),
+		DisplayName: displayName,
+		AvatarURL:   "",
 	}, nil
 }
 
@@ -548,10 +661,16 @@ func (s *OAuthService) SetOAuthCookies(c *gin.Context, result *OAuthResult) {
 }
 
 func oauthScopes(provider string) []string {
-	if provider == "github" {
+	switch provider {
+	case "github":
 		return []string{"read:user", "user:email"}
+	case "discord":
+		return []string{"identify", "email"}
+	case "apple":
+		return []string{"name", "email"}
+	default:
+		return []string{"openid", "profile", "email"}
 	}
-	return []string{"openid", "profile", "email"}
 }
 
 func ptr(s string) *string { return &s }

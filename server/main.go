@@ -160,6 +160,22 @@ _episodeService := services.NewEpisodeService(repos)
 	notificationService := services.NewNotificationService(repos)
 	searchService := services.NewSearchService(repos)
 	settingsService := services.NewSettingsService(repos)
+	mediaSourceService := services.NewMediaSourceService(db.Gorm(), cfg.MediaSource)
+	dashboardService := services.NewDashboardService(db.Gorm())
+	analyticsService := services.NewAnalyticsService(db.Gorm())
+	adminUserService := services.NewAdminUserService(repos)
+	adminProfileService := services.NewAdminProfileService(repos)
+	adminRoleService := services.NewAdminRoleService(repos)
+	adminPermissionService := services.NewAdminPermissionService(repos)
+	supportService := services.NewSupportService(repos)
+	contactAdminService := services.NewContactAdminService(repos)
+	faqService := services.NewFAQService(repos)
+	moderationService := services.NewModerationService(repos)
+	notificationAdminService := services.NewNotificationAdminService(repos)
+	calendarService := services.NewCalendarService(repos)
+	premiereService := services.NewPremiereService(repos)
+	systemService := services.NewSystemService(db.Gorm(), redis)
+	settingsAdminService := services.NewSettingsAdminService(db.Gorm(), repos)
 
 	mode, err := parseRuntimeMode(os.Args[1:])
 	if err != nil {
@@ -199,7 +215,23 @@ _episodeService := services.NewEpisodeService(repos)
 		NotificationService: notificationService,
 		SearchService:       searchService,
 		SettingsService:     settingsService,
-		RuntimeRole:         string(mode),
+		MediaSourceService:  mediaSourceService,
+		DashboardService:    dashboardService,
+		AnalyticsService:    analyticsService,
+		AdminUserService:        adminUserService,
+		AdminProfileService:     adminProfileService,
+		AdminRoleService:        adminRoleService,
+		AdminPermissionService:  adminPermissionService,
+		CalendarService:         calendarService,
+		PremiereService:         premiereService,
+		SystemService:           systemService,
+		SupportService:          supportService,
+		ContactAdminService:     contactAdminService,
+		FAQService:              faqService,
+		ModerationService:       moderationService,
+		NotificationAdminService: notificationAdminService,
+		SettingsAdminService:     settingsAdminService,
+		RuntimeRole:             string(mode),
 	})
 
 	if err := runHTTPServer(ctx, logger, cfg, router, mode); err != nil {

@@ -28,7 +28,7 @@ interface OAuthCallbackResponse {
 }
 
 export function getOAuthLoginUrl(
-  provider: "google" | "github",
+  provider: "google" | "github" | "discord" | "apple",
   action: "login" | "link" = "login"
 ): Promise<OAuthLoginResponse> {
   return apiRequest<OAuthLoginResponse>(
@@ -38,7 +38,7 @@ export function getOAuthLoginUrl(
 }
 
 export function handleOAuthCallback(
-  provider: "google" | "github",
+  provider: "google" | "github" | "discord" | "apple",
   code: string,
   state: string
 ): Promise<OAuthCallbackResponse> {
@@ -52,6 +52,6 @@ export function listOAuthAccounts(): Promise<{ accounts: OAuthAccountDTO[] }> {
   return apiRequest<{ accounts: OAuthAccountDTO[] }>("/auth/oauth/accounts");
 }
 
-export function unlinkOAuthAccount(provider: "google" | "github"): Promise<{ unlinked: boolean }> {
+export function unlinkOAuthAccount(provider: "google" | "github" | "discord" | "apple"): Promise<{ unlinked: boolean }> {
   return apiRequest<{ unlinked: boolean }>(`/auth/oauth/${provider}`, { method: "DELETE" });
 }

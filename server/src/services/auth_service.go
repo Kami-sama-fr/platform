@@ -113,6 +113,7 @@ func (s *AuthService) Register(ctx context.Context, req RegisterInput, meta Requ
 	}
 
 	var workspaceID string
+	isFirstUser := s.isFirstUser(ctx)
 	err = s.db.Transaction(ctx, func(tx *gorm.DB) error {
 		txRepos := s.repos.WithDB(tx)
 		if err := txRepos.Users().Create(ctx, user); err != nil {
@@ -134,11 +135,15 @@ func (s *AuthService) Register(ctx context.Context, req RegisterInput, meta Requ
 			OwnerID:     userID,
 			Description: "Personal workspace",
 		}
+		workspaceRole := "owner"
+		if isFirstUser {
+			workspaceRole = "superadmin"
+		}
 		member := &models.WorkspaceMember{
 			Common:      models.Common{ID: utils.NewID(), CreatedAt: now, UpdatedAt: now},
 			WorkspaceID: workspace.ID,
 			UserID:      userID,
-			Role:        "owner",
+			Role:        workspaceRole,
 			JoinedAt:    now,
 		}
 		if err := txRepos.Workspaces().Create(ctx, workspace); err != nil {
@@ -157,7 +162,17 @@ func (s *AuthService) Register(ctx context.Context, req RegisterInput, meta Requ
 		return nil, err
 	}
 
-	return s.createAuthenticatedSession(ctx, user, &workspaceID, roleToPermissions("owner"), []string{"owner"}, meta)
+	roles := []string{"owner"}
+	if isFirstUser {
+		roles = []string{"superadmin", "admin", "owner"}
+	}
+	return s.createAuthenticatedSession(ctx, user, &workspaceID, roleToPermissions("superadmin"), roles, meta)
+}
+
+func (s *AuthService) isFirstUser(ctx context.Context) bool {
+	var count int64
+	s.db.Gorm().Model(&models.User{}).Count(&count)
+	return count == 0
 }
 
 type RegisterInput struct {
@@ -593,6 +608,8 @@ func workspaceRoleAndPermissions(userID string, workspaceID *string, repos *Repo
 
 func roleToPermissions(role string) []string {
 	switch role {
+	case "superadmin":
+		return []string{"workspace:read", "workspace:write", "meeting:read", "meeting:write", "session:read", "session:write", "admin:read", "admin:write", "platform:read", "platform:write"}
 	case "owner":
 		return []string{"workspace:read", "workspace:write", "meeting:read", "meeting:write", "session:read", "session:write"}
 	case "admin":
