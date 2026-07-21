@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	redisclient "github.com/skygenesisenterprise/aether-account/server/internal/redis"
-	"github.com/skygenesisenterprise/aether-account/server/src/config"
-	"github.com/skygenesisenterprise/aether-account/server/src/interfaces"
-	"github.com/skygenesisenterprise/aether-account/server/src/middleware"
-	"github.com/skygenesisenterprise/aether-account/server/src/services"
-	"github.com/skygenesisenterprise/aether-account/server/src/utils"
+	redisclient "github.com/kami-sama-fr/platform/server/internal/redis"
+	"github.com/kami-sama-fr/platform/server/src/config"
+	"github.com/kami-sama-fr/platform/server/src/interfaces"
+	"github.com/kami-sama-fr/platform/server/src/middleware"
+	"github.com/kami-sama-fr/platform/server/src/services"
+	"github.com/kami-sama-fr/platform/server/src/utils"
 )
 
 type Dependencies struct {
@@ -28,11 +28,36 @@ type Dependencies struct {
 	OAuthService        *services.OAuthService
 	UserService         *services.UserService
 	WorkspaceService    *services.WorkspaceService
+	Repos               *services.Repositories
+	AnimeService        *services.AnimeService
+	EpisodeService      *services.EpisodeService
+	GenreService        *services.GenreService
+	StudioService       *services.StudioService
+	CharacterService    *services.CharacterService
+	MediaService        *services.MediaService
+	CommunityService    *services.CommunityService
+	WatchService        *services.WatchService
+	SchedulingService   *services.SchedulingService
+	NotificationService *services.NotificationService
+	SearchService       *services.SearchService
+	SettingsService     *services.SettingsService
 }
 
 func SetupRoutes(router *gin.Engine, deps Dependencies) {
 	handler := &apiHandler{deps: deps}
-	platform := &PlatformHandler{deps: deps}
+	platform := NewPlatformHandler(deps)
+	anime := NewAnimeHandler(deps)
+	episode := NewEpisodeHandler(deps)
+	genre := NewGenreHandler(deps)
+	studio := NewStudioHandler(deps)
+	character := NewCharacterHandler(deps)
+	media := NewMediaHandler(deps)
+	community := NewCommunityHandler(deps)
+	watch := NewWatchHandler(deps)
+	scheduling := NewSchedulingHandler(deps)
+	notification := NewNotificationHandler(deps)
+	search := NewSearchHandler(deps)
+	settings := NewSettingsHandler(deps)
 
 	router.GET("/health/live", handler.live)
 	router.GET("/health/ready", handler.ready)
@@ -42,6 +67,7 @@ func SetupRoutes(router *gin.Engine, deps Dependencies) {
 	api.GET("/health", handler.health)
 	api.GET("/ready", handler.ready)
 	api.POST("/webhooks/:provider/:integrationId", handler.webhook)
+
 	auth := api.Group("/auth")
 	{
 		auth.POST("/register", handler.register)
@@ -74,6 +100,17 @@ func SetupRoutes(router *gin.Engine, deps Dependencies) {
 		protected.GET("/me", handler.me)
 		protected.PATCH("/me", handler.updateMe)
 
+		protected.GET("/workspaces", handler.listWorkspaces)
+		protected.POST("/workspaces", handler.createWorkspace)
+		protected.GET("/workspaces/:workspaceId", handler.getWorkspace)
+		protected.PATCH("/workspaces/:workspaceId", handler.updateWorkspace)
+		protected.DELETE("/workspaces/:workspaceId", handler.deleteWorkspace)
+		protected.GET("/workspaces/:workspaceId/members", handler.listWorkspaceMembers)
+		protected.POST("/workspaces/:workspaceId/members", handler.createWorkspaceMember)
+		protected.POST("/workspaces/:workspaceId/members/provision", handler.provisionWorkspaceUser)
+		protected.PATCH("/workspaces/:workspaceId/members/:userId", handler.updateWorkspaceMember)
+		protected.DELETE("/workspaces/:workspaceId/members/:userId", handler.deleteWorkspaceMember)
+
 		platformGroup := protected.Group("/platform")
 		{
 			platformGroup.GET("/home", platform.GetHomeData)
@@ -96,17 +133,144 @@ func SetupRoutes(router *gin.Engine, deps Dependencies) {
 			platformGroup.PATCH("/settings", platform.UpdateSettings)
 		}
 
-		protected.GET("/workspaces", handler.listWorkspaces)
-		protected.POST("/workspaces", handler.createWorkspace)
-		protected.GET("/workspaces/:workspaceId", handler.getWorkspace)
-		protected.PATCH("/workspaces/:workspaceId", handler.updateWorkspace)
-		protected.DELETE("/workspaces/:workspaceId", handler.deleteWorkspace)
+		animeGroup := protected.Group("/anime")
+		{
+			animeGroup.GET("", anime.List)
+			animeGroup.POST("", anime.Create)
+			animeGroup.GET("/:animeId", anime.GetByID)
+			animeGroup.GET("/slug/:slug", anime.GetBySlug)
+			animeGroup.PATCH("/:animeId", anime.Update)
+			animeGroup.DELETE("/:animeId", anime.Delete)
+		}
 
-		protected.GET("/workspaces/:workspaceId/members", handler.listWorkspaceMembers)
-		protected.POST("/workspaces/:workspaceId/members", handler.createWorkspaceMember)
-		protected.POST("/workspaces/:workspaceId/members/provision", handler.provisionWorkspaceUser)
-		protected.PATCH("/workspaces/:workspaceId/members/:userId", handler.updateWorkspaceMember)
-		protected.DELETE("/workspaces/:workspaceId/members/:userId", handler.deleteWorkspaceMember)
+		genreGroup := protected.Group("/genres")
+		{
+			genreGroup.GET("", genre.List)
+			genreGroup.POST("", genre.Create)
+			genreGroup.GET("/:genreId", genre.GetByID)
+			genreGroup.GET("/slug/:slug", genre.GetBySlug)
+			genreGroup.PATCH("/:genreId", genre.Update)
+			genreGroup.DELETE("/:genreId", genre.Delete)
+		}
+
+		studioGroup := protected.Group("/studios")
+		{
+			studioGroup.GET("", studio.List)
+			studioGroup.POST("", studio.Create)
+			studioGroup.GET("/:studioId", studio.GetByID)
+			studioGroup.GET("/slug/:slug", studio.GetBySlug)
+			studioGroup.PATCH("/:studioId", studio.Update)
+			studioGroup.DELETE("/:studioId", studio.Delete)
+		}
+
+		characterGroup := protected.Group("/characters")
+		{
+			characterGroup.GET("", character.List)
+			characterGroup.POST("", character.Create)
+			characterGroup.GET("/:characterId", character.GetByID)
+			characterGroup.GET("/slug/:slug", character.GetBySlug)
+			characterGroup.PATCH("/:characterId", character.Update)
+			characterGroup.DELETE("/:characterId", character.Delete)
+		}
+
+		episodeGroup := protected.Group("/anime/:animeId/episodes")
+		{
+			episodeGroup.GET("", episode.ListByAnime)
+			episodeGroup.POST("", episode.Create)
+			episodeGroup.GET("/:episodeId", episode.GetByID)
+			episodeGroup.GET("/number/:episodeNumber", episode.GetNumber)
+			episodeGroup.PATCH("/:episodeId", episode.Update)
+			episodeGroup.DELETE("/:episodeId", episode.Delete)
+		}
+
+		mediaGroup := protected.Group("/media")
+		{
+			mediaGroup.GET("", media.List)
+			mediaGroup.POST("", media.Create)
+			mediaGroup.GET("/:mediaId", media.GetByID)
+			mediaGroup.PATCH("/:mediaId", media.Update)
+			mediaGroup.DELETE("/:mediaId", media.Delete)
+			mediaGroup.GET("/encoding-jobs", media.ListEncodingJobs)
+			mediaGroup.GET("/encoding-jobs/:jobId", media.GetEncodingJob)
+		}
+
+		communityGroup := protected.Group("/community")
+		{
+			communityGroup.GET("/reviews", community.ListReviews)
+			communityGroup.POST("/reviews", community.CreateReview)
+			communityGroup.GET("/reviews/:reviewId", community.GetReview)
+			communityGroup.PATCH("/reviews/:reviewId", community.UpdateReview)
+			communityGroup.DELETE("/reviews/:reviewId", community.DeleteReview)
+			communityGroup.GET("/reviews/:reviewId/comments", community.ListCommentsByReview)
+			communityGroup.POST("/reviews/:reviewId/comments", community.CreateComment)
+			communityGroup.PATCH("/comments/:commentId", community.UpdateComment)
+			communityGroup.DELETE("/comments/:commentId", community.DeleteComment)
+			communityGroup.GET("/watchlists", community.ListWatchlists)
+			communityGroup.POST("/watchlists", community.CreateWatchlist)
+			communityGroup.GET("/watchlists/:watchlistId", community.GetWatchlist)
+			communityGroup.PATCH("/watchlists/:watchlistId", community.UpdateWatchlist)
+			communityGroup.DELETE("/watchlists/:watchlistId", community.DeleteWatchlist)
+			communityGroup.GET("/watchlists/:watchlistId/anime", community.ListWatchlistAnime)
+			communityGroup.POST("/watchlists/:watchlistId/anime", community.AddToWatchlist)
+			communityGroup.DELETE("/watchlists/:watchlistId/anime/:animeId", community.RemoveFromWatchlist)
+			communityGroup.GET("/reports", community.ListReports)
+			communityGroup.POST("/reports", community.CreateReport)
+			communityGroup.PATCH("/reports/:reportId", community.UpdateReport)
+		}
+
+		watchGroup := protected.Group("/watch")
+		{
+			watchGroup.GET("/progress/:episodeId", watch.GetProgress)
+			watchGroup.PUT("/progress/:episodeId", watch.UpsertProgress)
+			watchGroup.GET("/progress", watch.ListProgress)
+			watchGroup.GET("/continue", watch.ContinueWatching)
+			watchGroup.GET("/history", watch.ListHistory)
+			watchGroup.POST("/history", watch.AddHistory)
+		}
+
+		schedulingGroup := protected.Group("/scheduling")
+		{
+			schedulingGroup.GET("/simulcasts", scheduling.ListSimulcasts)
+			schedulingGroup.POST("/simulcasts", scheduling.CreateSimulcast)
+			schedulingGroup.GET("/simulcasts/:simulcastId", scheduling.GetSimulcast)
+			schedulingGroup.PATCH("/simulcasts/:simulcastId", scheduling.UpdateSimulcast)
+			schedulingGroup.DELETE("/simulcasts/:simulcastId", scheduling.DeleteSimulcast)
+			schedulingGroup.GET("/simulcasts/week/:weekday", scheduling.GetSimulcastByWeek)
+			schedulingGroup.GET("/upcoming", scheduling.ListUpcomingReleases)
+			schedulingGroup.POST("/schedules", scheduling.CreateReleaseSchedule)
+			schedulingGroup.PATCH("/schedules/:scheduleId", scheduling.UpdateReleaseSchedule)
+		}
+
+		notificationGroup := protected.Group("/notifications")
+		{
+			notificationGroup.GET("", notification.List)
+			notificationGroup.GET("/:notificationId", notification.GetByID)
+			notificationGroup.PATCH("/:notificationId/read", notification.MarkRead)
+			notificationGroup.POST("/read-all", notification.MarkAllRead)
+			notificationGroup.DELETE("/:notificationId", notification.Delete)
+			notificationGroup.GET("/unread-count", notification.UnreadCount)
+			notificationGroup.GET("/preferences", notification.GetPreferences)
+			notificationGroup.PUT("/preferences", notification.UpdatePreferences)
+		}
+
+		searchGroup := protected.Group("/search")
+		{
+			searchGroup.GET("", search.Search)
+			searchGroup.GET("/anime", search.SearchAnime)
+			searchGroup.GET("/characters", search.SearchCharacters)
+			searchGroup.GET("/studios", search.SearchStudios)
+			searchGroup.GET("/suggestions", search.Suggestions)
+		}
+
+		settingsGroup := protected.Group("/settings")
+		{
+			settingsGroup.GET("", settings.List)
+			settingsGroup.GET("/seo", settings.GetSeoMeta)
+			settingsGroup.PUT("/seo", settings.UpsertSeoMeta)
+			settingsGroup.GET("/:key", settings.GetByKey)
+			settingsGroup.PUT("/:key", settings.Upsert)
+			settingsGroup.DELETE("/:key", settings.Delete)
+		}
 	}
 }
 

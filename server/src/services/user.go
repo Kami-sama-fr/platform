@@ -5,10 +5,27 @@ import (
 	"strings"
 	"time"
 
-	"github.com/skygenesisenterprise/aether-account/server/src/interfaces"
-	"github.com/skygenesisenterprise/aether-account/server/src/models"
-	"github.com/skygenesisenterprise/aether-account/server/src/utils"
+	"github.com/kami-sama-fr/platform/server/src/interfaces"
+	"github.com/kami-sama-fr/platform/server/src/models"
+	"github.com/kami-sama-fr/platform/server/src/utils"
 )
+
+type StorageInfo struct {
+	TotalSpace     int64   `json:"totalSpace"`
+	UsedSpace      int64   `json:"usedSpace"`
+	AvailableSpace int64   `json:"availableSpace"`
+	UsagePercent   float64 `json:"usagePercent"`
+	MaxFileSize    int64   `json:"maxFileSize"`
+	FileCount      int     `json:"fileCount"`
+}
+
+type PersonalDataSummary struct {
+	TotalFiles    int   `json:"totalFiles"`
+	TotalMessages int   `json:"totalMessages"`
+	TotalProjects int   `json:"totalProjects"`
+	TotalContacts int   `json:"totalContacts"`
+	TotalStorage  int64 `json:"totalStorage"`
+}
 
 type UserService struct {
 	users                   interfaces.UserRepository
@@ -54,6 +71,18 @@ func NewUserService(
 	}
 }
 
+func normalizePresenceState(status string) string {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "online", "idle", "dnd", "do_not_disturb", "invisible", "offline":
+		s := strings.ToLower(strings.TrimSpace(status))
+		if s == "do_not_disturb" {
+			return "dnd"
+		}
+		return s
+	default:
+		return ""
+	}
+}
 func (s *UserService) EnsureUser(ctx context.Context, principal interfaces.Principal) (*models.User, error) {
 	user, err := s.users.GetByID(ctx, principal.UserID)
 	if err == nil {
@@ -208,7 +237,7 @@ func (s *UserService) UpdateNotificationPreferences(
 	now := time.Now().UTC()
 	preference := &models.NotificationPreference{
 		Common:                      models.Common{ID: utils.NewID(), CreatedAt: now, UpdatedAt: now},
-		UserID:                      principal.UserID,
+		UserId:                      principal.UserID,
 		DirectMessageNotifications:  input.DirectMessages,
 		MentionNotifications:        input.Mentions,
 		ChannelMessageNotifications: input.ChannelMessages,
@@ -305,17 +334,18 @@ func (s *UserService) InviteFamilyMember(ctx context.Context, userID string, inp
 		Common:    models.Common{ID: utils.NewID(), CreatedAt: now, UpdatedAt: now},
 		Email:     input.Email,
 		Role:      input.Role,
-		Message:   input.Message,
+		Message:   &input.Message,
 		Token:     utils.NewID(),
 		Status:    "pending",
+		InvitedBy: userID,
 		ExpiresAt: now.Add(7 * 24 * time.Hour).UTC(),
 	}, nil
 }
 
 // GetStorageInfo retourne les informations de stockage
-func (s *UserService) GetStorageInfo(ctx context.Context, userID string) (*models.StorageInfo, error) {
+func (s *UserService) GetStorageInfo(ctx context.Context, userID string) (*StorageInfo, error) {
 	// À implémenter avec le service de stockage
-	return &models.StorageInfo{
+	return &StorageInfo{
 		TotalSpace:     10 * 1024 * 1024 * 1024, // 10 GB
 		UsedSpace:      2 * 1024 * 1024 * 1024, // 2 GB
 		AvailableSpace: 8 * 1024 * 1024 * 1024, // 8 GB
@@ -426,9 +456,9 @@ func (s *UserService) UpdatePrivacySettings(ctx context.Context, userID string, 
 }
 
 // GetPersonalDataSummary retourne un résumé des données personnelles
-func (s *UserService) GetPersonalDataSummary(ctx context.Context, userID string) (*models.PersonalDataSummary, error) {
+func (s *UserService) GetPersonalDataSummary(ctx context.Context, userID string) (*PersonalDataSummary, error) {
 	// À implémenter
-	return &models.PersonalDataSummary{
+	return &PersonalDataSummary{
 		TotalFiles:    0,
 		TotalMessages: 0,
 		TotalProjects: 0,

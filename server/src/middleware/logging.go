@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/skygenesisenterprise/aether-account/server/src/utils"
+	"github.com/kami-sama-fr/platform/server/src/utils"
 )
 
 func Logging(logger *slog.Logger) gin.HandlerFunc {

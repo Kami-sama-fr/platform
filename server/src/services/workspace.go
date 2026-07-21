@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/skygenesisenterprise/aether-account/server/src/config"
-	"github.com/skygenesisenterprise/aether-account/server/src/interfaces"
-	"github.com/skygenesisenterprise/aether-account/server/src/models"
-	"github.com/skygenesisenterprise/aether-account/server/src/utils"
+	"github.com/kami-sama-fr/platform/server/src/config"
+	"github.com/kami-sama-fr/platform/server/src/interfaces"
+	"github.com/kami-sama-fr/platform/server/src/models"
+	"github.com/kami-sama-fr/platform/server/src/utils"
 	"gorm.io/gorm"
 )
 

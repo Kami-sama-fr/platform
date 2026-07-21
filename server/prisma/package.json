@@ -1,7 +1,7 @@
 {
-  "name": "@aether-account/prisma",
+  "name": "@kami-sama/prisma",
   "version": "1.0.0",
-  "description": "Prisma schema and database layer for the Aether Account Database Layer.",
+  "description": "Prisma schema and database layer for the Kami-Sama Database Layer.",
   "private": true,
   "main": "schema.prisma",
   "scripts": {

@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/skygenesisenterprise/aether-account/server/src/interfaces"
-	"github.com/skygenesisenterprise/aether-account/server/src/utils"
+	"github.com/kami-sama-fr/platform/server/src/interfaces"
+	"github.com/kami-sama-fr/platform/server/src/utils"
 )
 
 type contextKey string

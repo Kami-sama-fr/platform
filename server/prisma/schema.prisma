@@ -7,6 +7,10 @@ datasource db {
   relationMode = "prisma"
 }
 
+// ─────────────────────────────────────────────
+// AUTH & USERS
+// ─────────────────────────────────────────────
+
 model User {
   id                String    @id @default(uuid())
   email             String    @unique
@@ -28,12 +32,12 @@ model User {
   localCredentials        LocalCredential[]
   authAccounts            AuthAccount[]
   authSessions            AuthSession[]
-  workspacesOwned         Workspace[]            @relation("WorkspaceOwner")
+  workspacesOwned         Workspace[]             @relation("WorkspaceOwner")
   workspaceMemberships    WorkspaceMember[]
-  contacts                Contact[]              @relation("ContactOwner")
-  familyMembers           FamilyMember[]         @relation("FamilyMemberUser")
-  familyMembersInvited    FamilyMember[]         @relation("FamilyMemberInviter")
-  invitationsSent         Invitation[]           @relation("InvitationSender")
+  contacts                Contact[]               @relation("ContactOwner")
+  familyMembers           FamilyMember[]          @relation("FamilyMemberUser")
+  familyMembersInvited    FamilyMember[]          @relation("FamilyMemberInviter")
+  invitationsSent         Invitation[]            @relation("InvitationSender")
   files                   FileItem[]
   billingInfo             BillingInfo?
   subscriptions           Subscription[]
@@ -42,26 +46,33 @@ model User {
   devices                 Device[]
   loginHistory            LoginHistory[]
   activities              ActivityItem[]
+  reviews                 Review[]
+  comments                Comment[]
+  reports                 Report[]
+  watchlists              Watchlist[]
+  watchProgress           WatchProgress[]
+  watchHistory            WatchHistory[]
+  notifications           Notification[]
 
   @@index([status, lastSeenAt])
   @@map("users")
 }
 
 model UserSettings {
-  id            String  @id @default(uuid())
-  userId        String  @unique @map("user_id")
-  theme         String  @default("system")
-  language      String  @default("fr")
-  locale        String  @default("fr")
-  timeZone      String  @default("Europe/Paris") @map("time_zone")
-  statusMessage String? @map("status_message")
-  density       String  @default("comfortable")
-  contrast      String  @default("default")
-  soundEnabled  Boolean @default(true) @map("sound_enabled")
-  secureSession Boolean @default(true) @map("secure_session")
+  id            String   @id @default(uuid())
+  userId        String   @unique @map("user_id")
+  theme         String   @default("system")
+  language      String   @default("fr")
+  locale        String   @default("fr")
+  timeZone      String   @default("Europe/Paris") @map("time_zone")
+  statusMessage String?  @map("status_message")
+  density       String   @default("comfortable")
+  contrast      String   @default("default")
+  soundEnabled  Boolean  @default(true) @map("sound_enabled")
+  secureSession Boolean  @default(true) @map("secure_session")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
-  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_settings")
 }
@@ -77,6 +88,10 @@ model NotificationPreference {
   emailNotifications          Boolean  @default(true) @map("email_notifications")
   soundEnabled                Boolean  @default(true) @map("sound_enabled")
   desktopNotifications        Boolean  @default(true) @map("desktop_notifications")
+  pushEnabled                 Boolean  @default(true) @map("push_enabled")
+  newEpisodes                 Boolean  @default(true) @map("new_episodes")
+  news                        Boolean  @default(true)
+  reminders                   Boolean  @default(true)
   createdAt                   DateTime @default(now()) @map("created_at")
   updatedAt                   DateTime @updatedAt @map("updated_at")
   user                        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -205,23 +220,29 @@ model AuthAuditEvent {
   @@map("auth_audit_events")
 }
 
+// ─────────────────────────────────────────────
+// WORKSPACES
+// ─────────────────────────────────────────────
+
 model Workspace {
-  id          String      @id @default(uuid())
-  name        String
-  slug        String      @unique
-  description String?
-  visibility  String      @default("private")
-  ownerId     String      @map("owner_id")
-  archivedAt  DateTime?   @map("archived_at")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
-  owner       User        @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  members     WorkspaceMember[]
-  ssoConfig   WorkspaceSSOConfig?
+  id            String              @id @default(uuid())
+  name          String
+  slug          String              @unique
+  description   String?
+  visibility    String              @default("private")
+  ownerId       String              @map("owner_id")
+  archivedAt    DateTime?           @map("archived_at")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+  owner         User                @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members       WorkspaceMember[]
+  ssoConfig     WorkspaceSSOConfig?
   contactGroups ContactGroup[]
-  files       FileItem[]
-  integrations Integration[]
-  activities  ActivityItem[]
+  files         FileItem[]
+  integrations  Integration[]
+  activities    ActivityItem[]
+  auditLogs     AuditLog[]
+  applications  Application[]
 
   @@index([ownerId])
   @@index([archivedAt])
@@ -229,26 +250,26 @@ model Workspace {
 }
 
 model WorkspaceSSOConfig {
-  id                String   @id @default(uuid())
-  workspaceId       String   @unique @map("workspace_id")
-  provider          String   @default("oidc")
-  enabled           Boolean  @default(false)
-  enforceSso        Boolean  @default(false) @map("enforce_sso")
-  allowPasswordAuth Boolean  @default(true) @map("allow_password_auth")
-  autoProvision     Boolean  @default(true) @map("auto_provision")
-  allowIdpInitiated Boolean  @default(false) @map("allow_idp_initiated")
-  domainHint        String?  @map("domain_hint")
-  issuerUrl         String?  @map("issuer_url")
-  ssoUrl            String?  @map("sso_url")
-  entityId          String?  @map("entity_id")
-  clientId          String?  @map("client_id")
-  clientSecret      String?  @map("client_secret")
+  id                String    @id @default(uuid())
+  workspaceId       String    @unique @map("workspace_id")
+  provider          String    @default("oidc")
+  enabled           Boolean   @default(false)
+  enforceSso        Boolean   @default(false) @map("enforce_sso")
+  allowPasswordAuth Boolean   @default(true) @map("allow_password_auth")
+  autoProvision     Boolean   @default(true) @map("auto_provision")
+  allowIdpInitiated Boolean   @default(false) @map("allow_idp_initiated")
+  domainHint        String?   @map("domain_hint")
+  issuerUrl         String?   @map("issuer_url")
+  ssoUrl            String?   @map("sso_url")
+  entityId          String?   @map("entity_id")
+  clientId          String?   @map("client_id")
+  clientSecret      String?   @map("client_secret")
   certificate       String?
-  allowedDomains    Json?    @map("allowed_domains")
-  defaultRole       String   @default("member") @map("default_role")
-  attributeMapping  Json?    @map("attribute_mapping")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  allowedDomains    Json?     @map("allowed_domains")
+  defaultRole       String    @default("member") @map("default_role")
+  attributeMapping  Json?     @map("attribute_mapping")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
   workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@map("workspace_sso_configs")
@@ -271,21 +292,61 @@ model WorkspaceMember {
   @@map("workspace_members")
 }
 
-model Contact {
+model AuditLog {
+  id           String     @id @default(uuid())
+  userId       String?    @map("user_id")
+  workspaceId  String?    @map("workspace_id")
+  action       String     @map("action")
+  resourceType String     @map("resource_type")
+  resourceId   String     @map("resource_id")
+  details      Json?      @map("details")
+  ipAddress    String?    @map("ip_address")
+  userAgent    String?    @map("user_agent")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  workspace    Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([workspaceId])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+model Application {
   id          String    @id @default(uuid())
-  userId      String    @map("user_id")
-  email       String    @map("email")
-  displayName String    @map("display_name")
-  avatarUrl   String?   @map("avatar_url")
-  phone       String?
-  company     String?
-  jobTitle    String?   @map("job_title")
-  isFavorite  Boolean   @default(false) @map("is_favorite")
-  notes       String?
-  tags        String?
+  workspaceId String    @map("workspace_id")
+  name        String
+  description String?
+  status      String    @default("active")
+  secret      String
+  redirectUri String    @map("redirect_uri")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
-  user        User      @relation("ContactOwner", fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@map("applications")
+}
+
+// ─────────────────────────────────────────────
+// CONTACTS & FAMILY
+// ─────────────────────────────────────────────
+
+model Contact {
+  id          String               @id @default(uuid())
+  userId      String               @map("user_id")
+  email       String               @map("email")
+  displayName String               @map("display_name")
+  avatarUrl   String?              @map("avatar_url")
+  phone       String?
+  company     String?
+  jobTitle    String?              @map("job_title")
+  isFavorite  Boolean              @default(false) @map("is_favorite")
+  notes       String?
+  tags        String?
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  user        User                 @relation("ContactOwner", fields: [userId], references: [id], onDelete: Cascade)
   groups      ContactGroupMember[]
 
   @@index([userId, displayName])
@@ -308,13 +369,13 @@ model ContactGroup {
 }
 
 model ContactGroupMember {
-  id        String        @id @default(uuid())
-  groupId   String        @map("group_id")
-  contactId String        @map("contact_id")
-  createdAt DateTime      @default(now()) @map("created_at")
-  updatedAt DateTime      @updatedAt @map("updated_at")
-  group     ContactGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  contact   Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  id        String       @id @default(uuid())
+  groupId   String       @map("group_id")
+  contactId String       @map("contact_id")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  group     ContactGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  contact   Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, contactId])
   @@index([contactId])
@@ -322,24 +383,25 @@ model ContactGroupMember {
 }
 
 model FamilyMember {
-  id           String    @id @default(uuid())
-  userId       String    @map("user_id")
-  email        String    @map("email")
-  displayName  String    @map("display_name")
-  role         String
-  status       String
-  invitedBy    String    @map("invited_by")
-  invitedAt    DateTime  @map("invited_at")
-  joinedAt     DateTime? @map("joined_at")
-  avatarUrl    String?   @map("avatar_url")
-  phone        String?
-  relationship String?
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  user            User      @relation("FamilyMemberUser", fields: [userId], references: [id], onDelete: Cascade)
-  invitedByUser   User?     @relation("FamilyMemberInviter", fields: [invitedBy], references: [id], onDelete: Restrict)
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  email         String    @map("email")
+  displayName   String    @map("display_name")
+  role          String
+  status        String
+  invitedBy     String    @map("invited_by")
+  invitedAt     DateTime  @map("invited_at")
+  joinedAt      DateTime? @map("joined_at")
+  avatarUrl     String?   @map("avatar_url")
+  phone         String?
+  relationship  String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  user          User      @relation("FamilyMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedByUser User?     @relation("FamilyMemberInviter", fields: [invitedBy], references: [id], onDelete: Restrict)
 
   @@index([userId])
+  @@index([invitedBy])
   @@index([email])
   @@map("family_members")
 }
@@ -362,37 +424,42 @@ model Invitation {
   sender     User      @relation("InvitationSender", fields: [invitedBy], references: [id], onDelete: Cascade)
 
   @@index([email])
+  @@index([invitedBy])
   @@index([expiresAt])
   @@map("invitations")
 }
 
+// ─────────────────────────────────────────────
+// FILES & BILLING
+// ─────────────────────────────────────────────
+
 model FileItem {
-  id           String   @id @default(uuid())
-  userId       String   @map("user_id")
-  workspaceId  String?  @map("workspace_id")
-  parentId     String?  @map("parent_id")
+  id           String     @id @default(uuid())
+  userId       String     @map("user_id")
+  workspaceId  String?    @map("workspace_id")
+  parentId     String?    @map("parent_id")
   name         String
-  path         String   @map("path")
-  type         String   @default("file")
-  mimeType     String?  @map("mime_type")
-  size         BigInt   @default(0)
+  path         String     @map("path")
+  type         String     @default("file")
+  mimeType     String?    @map("mime_type")
+  size         BigInt     @default(0)
   extension    String?
   hash         String?
   url          String?
-  thumbnailUrl String?  @map("thumbnail_url")
-  isFavorite   Boolean  @default(false) @map("is_favorite")
-  isPublic     Boolean  @default(false) @map("is_public")
-  isShared     Boolean  @default(false) @map("is_shared")
-  sharedWith   String?  @map("shared_with")
-  permissions  String?  @map("permissions")
+  thumbnailUrl String?    @map("thumbnail_url")
+  isFavorite   Boolean    @default(false) @map("is_favorite")
+  isPublic     Boolean    @default(false) @map("is_public")
+  isShared     Boolean    @default(false) @map("is_shared")
+  sharedWith   String?    @map("shared_with")
+  permissions  String?    @map("permissions")
   description  String?
   tags         String?
-  uploadStatus String?  @map("upload_status")
-  uploadedBy   String?  @map("uploaded_by")
-  version      Int      @default(1)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  uploadStatus String?    @map("upload_status")
+  uploadedBy   String?    @map("uploaded_by")
+  version      Int        @default(1)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace    Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([userId, path])
@@ -402,45 +469,45 @@ model FileItem {
 }
 
 model BillingInfo {
-  id               String    @id @default(uuid())
-  userId           String    @unique @map("user_id")
-  customerId       String?   @map("customer_id")
-  paymentMethodId  String?   @map("payment_method_id")
-  paymentMethod    String?   @map("payment_method")
-  billingEmail     String    @map("billing_email")
-  billingAddress   String?   @map("billing_address")
-  taxId            String?   @map("tax_id")
-  currency         String    @default("EUR")
-  nextBillingDate  DateTime? @map("next_billing_date")
-  lastPaymentDate  DateTime? @map("last_payment_date")
-  paymentStatus    String?   @map("payment_status")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String    @id @default(uuid())
+  userId          String    @unique @map("user_id")
+  customerId      String?   @map("customer_id")
+  paymentMethodId String?   @map("payment_method_id")
+  paymentMethod   String?   @map("payment_method")
+  billingEmail    String    @map("billing_email")
+  billingAddress  String?   @map("billing_address")
+  taxId           String?   @map("tax_id")
+  currency        String    @default("EUR")
+  nextBillingDate DateTime? @map("next_billing_date")
+  lastPaymentDate DateTime? @map("last_payment_date")
+  paymentStatus   String?   @map("payment_status")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("billing_infos")
 }
 
 model Subscription {
-  id             String    @id @default(uuid())
-  userId         String    @map("user_id")
-  planId         String    @map("plan_id")
-  planName       String    @map("plan_name")
-  status         String
-  amount         Float
-  currency       String
-  interval       String
-  startDate      DateTime  @map("start_date")
-  endDate        DateTime? @map("end_date")
-  cancelAt       DateTime? @map("cancel_at")
-  canceledAt     DateTime? @map("canceled_at")
-  trialStart     DateTime? @map("trial_start")
-  trialEnd       DateTime? @map("trial_end")
-  features       String?
-  metadata       String?
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  planId     String    @map("plan_id")
+  planName   String    @map("plan_name")
+  status     String
+  amount     Float
+  currency   String
+  interval   String
+  startDate  DateTime  @map("start_date")
+  endDate    DateTime? @map("end_date")
+  cancelAt   DateTime? @map("cancel_at")
+  canceledAt DateTime? @map("canceled_at")
+  trialStart DateTime? @map("trial_start")
+  trialEnd   DateTime? @map("trial_end")
+  features   String?
+  metadata   String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
@@ -448,42 +515,46 @@ model Subscription {
 }
 
 model Transaction {
-  id             String    @id @default(uuid())
-  userId         String    @map("user_id")
-  subscriptionId String?   @map("subscription_id")
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  subscriptionId String?  @map("subscription_id")
   type           String
   amount         Float
   currency       String
   description    String
   status         String
-  date           DateTime  @map("date")
-  invoiceId      String?   @map("invoice_id")
-  invoiceUrl     String?   @map("invoice_url")
-  paymentId      String?   @map("payment_id")
+  date           DateTime @map("date")
+  invoiceId      String?  @map("invoice_id")
+  invoiceUrl     String?  @map("invoice_url")
+  paymentId      String?  @map("payment_id")
   gateway        String?
-  gatewayData    String?   @map("gateway_data")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gatewayData    String?  @map("gateway_data")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
   @@index([subscriptionId])
   @@map("transactions")
 }
 
+// ─────────────────────────────────────────────
+// PRIVACY, DEVICES, SECURITY
+// ─────────────────────────────────────────────
+
 model PrivacySettings {
-  id              String @id @default(uuid())
-  userId          String @unique @map("user_id")
-  dataProcessing  Boolean @default(true) @map("data_processing")
-  marketingEmails Boolean @default(true) @map("marketing_emails")
-  analytics       Boolean @default(true)
-  publicProfile   Boolean @default(false) @map("public_profile")
-  searchable      Boolean @default(true)
-  showOnlineStatus Boolean @default(true) @map("show_online_status")
-  dataRetention   String? @map("data_retention")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String   @id @default(uuid())
+  userId           String   @unique @map("user_id")
+  dataProcessing   Boolean  @default(true) @map("data_processing")
+  marketingEmails  Boolean  @default(true) @map("marketing_emails")
+  analytics        Boolean  @default(true)
+  publicProfile    Boolean  @default(false) @map("public_profile")
+  searchable       Boolean  @default(true)
+  showOnlineStatus Boolean  @default(true) @map("show_online_status")
+  dataRetention    String?  @map("data_retention")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("privacy_settings")
 }
@@ -543,19 +614,19 @@ model LoginHistory {
 }
 
 model ActivityItem {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  workspaceId String?  @map("workspace_id")
+  id          String     @id @default(uuid())
+  userId      String     @map("user_id")
+  workspaceId String?    @map("workspace_id")
   type        String
-  entityId    String   @map("entity_id")
+  entityId    String     @map("entity_id")
   title       String
   message     String
   icon        String?
   url         String?
-  isRead      Boolean  @default(false) @map("is_read")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isRead      Boolean    @default(false) @map("is_read")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
@@ -564,17 +635,530 @@ model ActivityItem {
 }
 
 model Integration {
-  id            String   @id @default(uuid())
-  workspaceId   String   @map("workspace_id")
+  id            String    @id @default(uuid())
+  workspaceId   String    @map("workspace_id")
   provider      String
   name          String
   status        String
   configuration Json?
-  createdById   String   @map("created_by")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdById   String    @map("created_by")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
   workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, provider])
   @@map("integrations")
+}
+
+// ─────────────────────────────────────────────
+// ANIME & CONTENT
+// ─────────────────────────────────────────────
+
+model Anime {
+  id             String    @id @default(uuid())
+  slug           String    @unique
+  title          String
+  japaneseTitle  String?   @map("japanese_title")
+  synopsis       String?
+  coverImageUrl  String?   @map("cover_image_url")
+  bannerImageUrl String?   @map("banner_image_url")
+  trailerUrl     String?   @map("trailer_url")
+  status         String    @default("upcoming")
+  rating         Float     @default(0)
+  ratingCount    Int       @default(0) @map("rating_count")
+  totalEpisodes  Int       @default(0) @map("total_episodes")
+  releaseYear    Int       @default(0) @map("release_year")
+  season         String?
+  source         String?
+  ageRating      String?   @map("age_rating")
+  isFeatured     Boolean   @default(false) @map("is_featured")
+  isTrending     Boolean   @default(false) @map("is_trending")
+  metadata       Json?
+  deletedAt      DateTime? @map("deleted_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  genres           AnimeGenre[]
+  studios          AnimeStudio[]
+  characters       AnimeCharacter[]
+  seasons          AnimeSeason[]
+  episodes         Episode[]
+  mediaAssets      MediaAsset[]
+  reviews          Review[]
+  simulcasts       Simulcast[]
+  releaseSchedules ReleaseSchedule[]
+  watchProgresses  WatchProgress[]
+  watchHistories   WatchHistory[]
+
+  @@index([status, releaseYear])
+  @@index([isFeatured])
+  @@index([isTrending])
+  @@map("anime")
+}
+
+model AnimeSeason {
+  id           String    @id @default(uuid())
+  animeId      String    @map("anime_id")
+  number       Int
+  title        String?
+  episodeCount Int       @default(0) @map("episode_count")
+  airDate      String?   @map("air_date")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  anime        Anime     @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  episodes     Episode[]
+
+  @@unique([animeId, number])
+  @@map("anime_seasons")
+}
+
+model Genre {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  anime AnimeGenre[]
+
+  @@map("genres")
+}
+
+model Studio {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  logoUrl     String?   @map("logo_url")
+  description String?
+  website     String?
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  anime AnimeStudio[]
+
+  @@map("studios")
+}
+
+model Character {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  imageUrl    String?   @map("image_url")
+  description String?
+  gender      String?
+  metadata    Json?
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  anime AnimeCharacter[]
+
+  @@map("characters")
+}
+
+model AnimeGenre {
+  animeId String @map("anime_id")
+  genreId String @map("genre_id")
+  anime   Anime  @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  genre   Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([animeId, genreId])
+  @@index([genreId])
+  @@map("anime_genres")
+}
+
+model AnimeStudio {
+  animeId  String @map("anime_id")
+  studioId String @map("studio_id")
+  anime    Anime  @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  studio   Studio @relation(fields: [studioId], references: [id], onDelete: Cascade)
+
+  @@id([animeId, studioId])
+  @@index([studioId])
+  @@map("anime_studios")
+}
+
+model AnimeCharacter {
+  animeId     String    @map("anime_id")
+  characterId String    @map("character_id")
+  role        String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  anime       Anime     @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@id([animeId, characterId])
+  @@index([characterId])
+  @@map("anime_characters")
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("tags")
+}
+
+// ─────────────────────────────────────────────
+// EPISODES
+// ─────────────────────────────────────────────
+
+model Episode {
+  id           String       @id @default(uuid())
+  animeId      String       @map("anime_id")
+  seasonId     String?      @map("season_id")
+  number       Int
+  title        String
+  synopsis     String?
+  thumbnailUrl String?      @map("thumbnail_url")
+  duration     Float        @default(0)
+  airDate      DateTime?    @map("air_date")
+  isSubbed     Boolean      @default(true) @map("is_subbed")
+  isDubbed     Boolean      @default(false) @map("is_dubbed")
+  metadata     Json?
+  deletedAt    DateTime?    @map("deleted_at")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  anime        Anime        @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  season       AnimeSeason? @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+
+  mediaAssets      MediaAsset[]
+  watchProgress    WatchProgress[]
+  watchHistory     WatchHistory[]
+  releaseSchedules ReleaseSchedule[]
+
+  @@unique([animeId, number])
+  @@index([animeId])
+  @@index([seasonId])
+  @@map("episodes")
+}
+
+// ─────────────────────────────────────────────
+// MEDIA & ENCODING
+// ─────────────────────────────────────────────
+
+model MediaAsset {
+  id          String   @id @default(uuid())
+  animeId     String   @map("anime_id")
+  episodeId   String?  @map("episode_id")
+  type        String
+  filename    String
+  originalUrl String   @map("original_url")
+  mimeType    String?  @map("mime_type")
+  size        BigInt   @default(0)
+  duration    Float    @default(0)
+  width       Int      @default(0)
+  height      Int      @default(0)
+  language    String?
+  quality     String?
+  codec       String?
+  cdnUrl      String?  @map("cdn_url")
+  status      String   @default("pending")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  anime       Anime    @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  episode     Episode? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+
+  encodingJobs EncodingJob[]
+
+  @@index([animeId])
+  @@index([episodeId])
+  @@map("media_assets")
+}
+
+model EncodingJob {
+  id           String     @id @default(uuid())
+  mediaAssetId String     @map("media_asset_id")
+  status       String     @default("pending")
+  profile      String?
+  progress     Int        @default(0)
+  outputUrl    String?    @map("output_url")
+  startedAt    DateTime?  @map("started_at")
+  completedAt  DateTime?  @map("completed_at")
+  failedAt     DateTime?  @map("failed_at")
+  errorMessage String?    @map("error_message")
+  metadata     Json?
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  mediaAsset   MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@index([mediaAssetId])
+  @@index([status])
+  @@map("encoding_jobs")
+}
+
+model CdnAsset {
+  id          String   @id @default(uuid())
+  originalUrl String   @map("original_url")
+  cdnUrl      String   @map("cdn_url")
+  fileType    String?  @map("file_type")
+  fileSize    BigInt   @default(0)
+  status      String   @default("active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("cdn_assets")
+}
+
+// ─────────────────────────────────────────────
+// COMMUNITY
+// ─────────────────────────────────────────────
+
+model Review {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  animeId   String    @map("anime_id")
+  rating    Int
+  title     String?
+  content   String?
+  spoiler   Boolean   @default(false)
+  helpful   Int       @default(0)
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  anime     Anime     @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+
+  @@unique([userId, animeId])
+  @@index([animeId])
+  @@index([rating])
+  @@map("reviews")
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  animeId   String?   @map("anime_id")
+  episodeId String?   @map("episode_id")
+  reviewId  String?   @map("review_id")
+  parentId  String?   @map("parent_id")
+  content   String
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  review    Review?   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([animeId])
+  @@index([reviewId])
+  @@index([parentId])
+  @@map("comments")
+}
+
+model Report {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  targetType  String    @map("target_type")
+  targetId    String    @map("target_id")
+  reason      String
+  description String?
+  status      String    @default("pending")
+  resolvedBy  String?   @map("resolved_by")
+  resolvedAt  DateTime? @map("resolved_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([targetType, targetId])
+  @@index([status])
+  @@map("reports")
+}
+
+// ─────────────────────────────────────────────
+// WATCHLISTS & PROGRESS
+// ─────────────────────────────────────────────
+
+model Watchlist {
+  id        String          @id @default(uuid())
+  userId    String          @map("user_id")
+  name      String
+  type      String          @default("custom")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     WatchlistItem[]
+
+  @@index([userId])
+  @@map("watchlists")
+}
+
+model WatchlistItem {
+  id          String    @id @default(uuid())
+  watchlistId String    @map("watchlist_id")
+  animeId     String    @map("anime_id")
+  addedAt     DateTime  @default(now()) @map("added_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+
+  @@unique([watchlistId, animeId])
+  @@index([animeId])
+  @@map("watchlist_items")
+}
+
+model WatchProgress {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  episodeId   String   @map("episode_id")
+  animeId     String   @map("anime_id")
+  progress    Float    @default(0)
+  duration    Float    @default(0)
+  percentage  Float    @default(0)
+  completed   Boolean  @default(false)
+  lastWatched DateTime @map("last_watched")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode     Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  anime       Anime    @relation(fields: [animeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, episodeId])
+  @@index([userId])
+  @@index([episodeId])
+  @@index([animeId])
+  @@index([lastWatched])
+  @@map("watch_progress")
+}
+
+model WatchHistory {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  episodeId String   @map("episode_id")
+  animeId   String   @map("anime_id")
+  watchedAt DateTime @map("watched_at")
+  duration  Float    @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  anime     Anime    @relation(fields: [animeId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([episodeId])
+  @@index([animeId])
+  @@index([watchedAt])
+  @@map("watch_history")
+}
+
+// ─────────────────────────────────────────────
+// SCHEDULING
+// ─────────────────────────────────────────────
+
+model Simulcast {
+  id            String    @id @default(uuid())
+  animeId       String    @map("anime_id")
+  airDay        String    @map("air_day")
+  airTime       String    @map("air_time")
+  airTimezone   String    @map("air_timezone")
+  region        String    @default("global")
+  platform      String?
+  episodeNumber Int       @default(0) @map("episode_number")
+  season        Int       @default(0)
+  startsAt      DateTime  @map("starts_at")
+  endsAt        DateTime? @map("ends_at")
+  status        String    @default("scheduled")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  anime         Anime     @relation(fields: [animeId], references: [id], onDelete: Cascade)
+
+  @@index([animeId])
+  @@index([airDay])
+  @@index([status])
+  @@map("simulcasts")
+}
+
+model ReleaseSchedule {
+  id          String   @id @default(uuid())
+  animeId     String   @map("anime_id")
+  episodeId   String?  @map("episode_id")
+  scheduledAt DateTime @map("scheduled_at")
+  region      String   @default("global")
+  status      String   @default("scheduled")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  anime       Anime    @relation(fields: [animeId], references: [id], onDelete: Cascade)
+  episode     Episode? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+
+  @@index([animeId])
+  @@index([episodeId])
+  @@index([scheduledAt])
+  @@index([status])
+  @@map("release_schedules")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  type      String
+  title     String
+  body      String?
+  link      String?
+  read      Boolean   @default(false)
+  readAt    DateTime? @map("read_at")
+  metadata  Json?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model NotificationTemplate {
+  id        String   @id @default(uuid())
+  type      String   @unique
+  subject   String
+  body      String
+  isHtml    Boolean  @default(false) @map("is_html")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_templates")
+}
+
+// ─────────────────────────────────────────────
+// SETTINGS & SEO
+// ─────────────────────────────────────────────
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json?
+  category    String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@map("system_settings")
+}
+
+model SeoMeta {
+  id           String   @id @default(uuid())
+  pagePath     String   @unique @map("page_path")
+  title        String?
+  description  String?
+  keywords     String?
+  ogImage      String?  @map("og_image")
+  canonicalUrl String?  @map("canonical_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("seo_meta")
 }

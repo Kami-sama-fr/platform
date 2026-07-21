@@ -12,11 +12,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	redisclient "github.com/skygenesisenterprise/aether-account/server/internal/redis"
-	"github.com/skygenesisenterprise/aether-account/server/src/config"
-	"github.com/skygenesisenterprise/aether-account/server/src/middleware"
-	"github.com/skygenesisenterprise/aether-account/server/src/routes"
-	"github.com/skygenesisenterprise/aether-account/server/src/services"
+	redisclient "github.com/kami-sama-fr/platform/server/internal/redis"
+	"github.com/kami-sama-fr/platform/server/src/config"
+	"github.com/kami-sama-fr/platform/server/src/middleware"
+	"github.com/kami-sama-fr/platform/server/src/routes"
+	"github.com/kami-sama-fr/platform/server/src/services"
 )
 
 type runtimeMode string
@@ -101,13 +101,13 @@ func main() {
 
 	db, err := connectDatabase(context.Background(), logger, cfg)
 	if err != nil {
-		logger.Error("database connection failed", "error", err)
-		os.Exit(1)
-	}
-	defer db.Close()
-	if err := db.AutoMigrate(); err != nil {
-		logger.Error("database migration failed", "error", err)
-		os.Exit(1)
+		logger.Warn("database unavailable, running without database", "error", err)
+		db = services.NewNilDatabaseService()
+	} else {
+		defer db.Close()
+		if err := db.AutoMigrate(); err != nil {
+			logger.Warn("database migration failed", "error", err)
+		}
 	}
 
 	redis, err := redisclient.New(redisclient.Config{
@@ -148,6 +148,19 @@ func main() {
 	authService := services.NewAuthService(cfg.Auth, db, repos, identityProvider, authLimiter, workspaceService)
 	oauthService := services.NewOAuthService(cfg.OAuth, repos, authService, identityProvider, workspaceService, nil)
 
+	animeService := services.NewAnimeService(repos)
+_episodeService := services.NewEpisodeService(repos)
+	genreService := services.NewGenreService(repos)
+	studioService := services.NewStudioService(repos)
+	characterService := services.NewCharacterService(repos)
+	mediaService := services.NewMediaService(repos)
+	communityService := services.NewCommunityService(repos)
+	watchService := services.NewWatchService(repos)
+	schedulingService := services.NewSchedulingService(repos)
+	notificationService := services.NewNotificationService(repos)
+	searchService := services.NewSearchService(repos)
+	settingsService := services.NewSettingsService(repos)
+
 	mode, err := parseRuntimeMode(os.Args[1:])
 	if err != nil {
 		logger.Error("unknown mode", "error", err)
@@ -163,17 +176,30 @@ func main() {
 		_ = router.SetTrustedProxies(cfg.App.TrustedProxies)
 	}
 	routes.SetupRoutes(router, routes.Dependencies{
-		Config:           cfg,
-		Logger:           logger,
-		Database:         db,
-		Redis:            redis,
-		EventBus:         eventBus,
-		IdentityProvider: identityProvider,
-		AuthService:      authService,
-		OAuthService:     oauthService,
-		UserService:      userService,
-		WorkspaceService: workspaceService,
-		RuntimeRole:      string(mode),
+		Config:              cfg,
+		Logger:              logger,
+		Database:            db,
+		Redis:               redis,
+		EventBus:            eventBus,
+		IdentityProvider:    identityProvider,
+		AuthService:         authService,
+		OAuthService:        oauthService,
+		UserService:         userService,
+		WorkspaceService:    workspaceService,
+		Repos:               repos,
+		AnimeService:        animeService,
+		EpisodeService:      _episodeService,
+		GenreService:        genreService,
+		StudioService:       studioService,
+		CharacterService:    characterService,
+		MediaService:        mediaService,
+		CommunityService:    communityService,
+		WatchService:        watchService,
+		SchedulingService:   schedulingService,
+		NotificationService: notificationService,
+		SearchService:       searchService,
+		SettingsService:     settingsService,
+		RuntimeRole:         string(mode),
 	})
 
 	if err := runHTTPServer(ctx, logger, cfg, router, mode); err != nil {

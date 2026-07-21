@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/skygenesisenterprise/aether-account/server/src/config"
-	"github.com/skygenesisenterprise/aether-account/server/src/interfaces"
+	"github.com/kami-sama-fr/platform/server/src/config"
+	"github.com/kami-sama-fr/platform/server/src/interfaces"
 	"gorm.io/gorm"
 )
 

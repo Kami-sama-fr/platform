@@ -1,14 +1,19 @@
 package routes
 
 import (
+	"crypto/sha256"
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/hex"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/skygenesisenterprise/aether-account/server/src/services"
-	"github.com/skygenesisenterprise/aether-account/server/src/utils"
+	"github.com/kami-sama-fr/platform/server/src/models"
+	"github.com/kami-sama-fr/platform/server/src/services"
+	"github.com/kami-sama-fr/platform/server/src/utils"
 )
 
 func (h *apiHandler) register(c *gin.Context) {
@@ -182,14 +187,122 @@ func (h *apiHandler) forgotPassword(c *gin.Context) {
 }
 
 func (h *apiHandler) resetPassword(c *gin.Context) {
-	utils.Success(c, http.StatusNotImplemented, gin.H{"accepted": false})
+	var req struct {
+		Token    string `json:"token"`
+		Password string `json:"password"`
+	}
+	if c.ShouldBindJSON(&req) != nil || req.Token == "" || len(req.Password) < 12 {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+
+	tokenHash := hashToken(req.Token)
+	token, err := h.deps.Repos.PasswordResetTokens().GetByHash(c.Request.Context(), tokenHash)
+	if err != nil {
+		utils.Error(c, utils.ErrInvalidToken)
+		return
+	}
+	now := time.Now().UTC()
+	if token.ConsumedAt != nil || token.ExpiresAt.Before(now) {
+		utils.Error(c, utils.ErrInvalidToken)
+		return
+	}
+
+	hasher := services.NewPasswordHasher(h.deps.Config.Auth)
+	newHash, err := hasher.Hash(req.Password)
+	if err != nil {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+
+	credential, err := h.deps.Repos.LocalCredentials().GetByUserID(c.Request.Context(), token.UserID)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	credential.PasswordHash = newHash
+	credential.UpdatedAt = now
+	_ = h.deps.Repos.LocalCredentials().Update(c.Request.Context(), credential)
+
+	user, _ := h.deps.Repos.Users().GetByID(c.Request.Context(), token.UserID)
+	user.PasswordChangedAt = &now
+	user.UpdatedAt = now
+	_ = h.deps.Repos.Users().Update(c.Request.Context(), user)
+
+	token.ConsumedAt = &now
+	_ = h.deps.Repos.PasswordResetTokens().Update(c.Request.Context(), token)
+
+	_ = h.deps.AuthService.LogoutAll(c.Request.Context(), token.UserID, false, "")
+
+	utils.Success(c, http.StatusOK, gin.H{"reset": true})
 }
 
 func (h *apiHandler) verifyEmail(c *gin.Context) {
-	utils.Success(c, http.StatusNotImplemented, gin.H{"accepted": false})
+	var req struct {
+		Token string `json:"token"`
+	}
+	if c.ShouldBindJSON(&req) != nil || req.Token == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+
+	tokenHash := hashToken(req.Token)
+	token, err := h.deps.Repos.EmailVerificationTokens().GetByHash(c.Request.Context(), tokenHash)
+	if err != nil {
+		utils.Error(c, utils.ErrInvalidToken)
+		return
+	}
+	now := time.Now().UTC()
+	if token.ConsumedAt != nil || token.ExpiresAt.Before(now) {
+		utils.Error(c, utils.ErrInvalidToken)
+		return
+	}
+
+	user, err := h.deps.Repos.Users().GetByID(c.Request.Context(), token.UserID)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	user.EmailVerifiedAt = &now
+	user.UpdatedAt = now
+	_ = h.deps.Repos.Users().Update(c.Request.Context(), user)
+
+	token.ConsumedAt = &now
+	_ = h.deps.Repos.EmailVerificationTokens().Update(c.Request.Context(), token)
+
+	utils.Success(c, http.StatusOK, gin.H{"verified": true})
 }
 
 func (h *apiHandler) resendVerification(c *gin.Context) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if c.ShouldBindJSON(&req) != nil || req.Email == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	_, emailNorm := normalizeEmailAuth(req.Email)
+	user, err := h.deps.Repos.Users().GetByEmail(c.Request.Context(), emailNorm)
+	if err != nil {
+		utils.Success(c, http.StatusAccepted, gin.H{"accepted": true})
+		return
+	}
+	if user.EmailVerifiedAt != nil {
+		utils.Success(c, http.StatusAccepted, gin.H{"accepted": true, "alreadyVerified": true})
+		return
+	}
+	now := time.Now().UTC()
+	token, hash, _ := issueOpaqueTokenAuth(32)
+	_ = token
+	model := &models.EmailVerificationToken{
+		Common:       models.Common{ID: utils.NewID(), CreatedAt: now, UpdatedAt: now},
+		UserID:       user.ID,
+		TokenHash:    hash,
+		ExpiresAt:    now.Add(24 * time.Hour),
+		LastSentAt:   &now,
+		RequestCount: 1,
+	}
+	_ = h.deps.Repos.EmailVerificationTokens().Create(c.Request.Context(), model)
 	utils.Success(c, http.StatusAccepted, gin.H{"accepted": true})
 }
 
@@ -320,4 +433,24 @@ func (h *apiHandler) validateCSRFCookieOrigin(c *gin.Context) bool {
 	}
 	utils.Error(c, utils.ErrForbidden)
 	return false
+}
+
+func hashToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
+
+func issueOpaqueTokenAuth(length int) (string, string, error) {
+	raw := make([]byte, length)
+	if _, err := rand.Read(raw); err != nil {
+		return "", "", err
+	}
+	token := base64.RawURLEncoding.EncodeToString(raw)
+	sum := sha256.Sum256([]byte(token))
+	return token, hex.EncodeToString(sum[:]), nil
+}
+
+func normalizeEmailAuth(email string) (string, string) {
+	trimmed := strings.TrimSpace(email)
+	return trimmed, strings.ToLower(trimmed)
 }

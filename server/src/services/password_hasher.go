@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/skygenesisenterprise/aether-account/server/src/config"
+	"github.com/kami-sama-fr/platform/server/src/config"
 	"golang.org/x/crypto/argon2"
 )
 

@@ -1,0 +1,188 @@
+package routes
+
+import (
+	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/kami-sama-fr/platform/server/src/interfaces"
+	"github.com/kami-sama-fr/platform/server/src/middleware"
+	"github.com/kami-sama-fr/platform/server/src/utils"
+)
+
+type AnimeHandler struct {
+	deps Dependencies
+}
+
+func NewAnimeHandler(deps Dependencies) *AnimeHandler {
+	return &AnimeHandler{deps: deps}
+}
+
+func (h *AnimeHandler) List(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+
+	opts := interfaces.ListAnimeOpts{
+		Page:  page,
+		Limit: limit,
+		Query: strings.TrimSpace(c.Query("q")),
+		Sort:  strings.TrimSpace(c.DefaultQuery("sort", "created_at")),
+
+	}
+	if status := strings.TrimSpace(c.Query("status")); status != "" {
+		opts.Status = status
+	}
+	if studio := strings.TrimSpace(c.Query("studio")); studio != "" {
+		opts.Studio = studio
+	}
+	if yearStr := c.Query("year"); yearStr != "" {
+		if y, err := strconv.Atoi(yearStr); err == nil {
+			opts.Year = y
+		}
+	}
+	if season := strings.TrimSpace(c.Query("season")); season != "" {
+		opts.Season = season
+	}
+	if genres := c.QueryArray("genre"); len(genres) > 0 {
+		opts.Genres = genres
+	}
+	if c.Query("featured") == "true" {
+		v := true
+		opts.Featured = &v
+	}
+	if c.Query("trending") == "true" {
+		v := true
+		opts.Trending = &v
+	}
+
+	items, total, err := h.deps.AnimeService.List(c.Request.Context(), opts)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, gin.H{"items": items, "total": total})
+}
+
+func (h *AnimeHandler) GetByID(c *gin.Context) {
+	id := c.Param("animeId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	item, err := h.deps.AnimeService.GetByID(c.Request.Context(), id)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, item)
+}
+
+func (h *AnimeHandler) GetBySlug(c *gin.Context) {
+	slug := c.Param("slug")
+	if slug == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	item, err := h.deps.AnimeService.GetBySlug(c.Request.Context(), slug)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, item)
+}
+
+func (h *AnimeHandler) Create(c *gin.Context) {
+	principal, ok := middleware.GetPrincipal(c)
+	if !ok {
+		utils.Error(c, utils.ErrUnauthorized)
+		return
+	}
+	var req struct {
+		Title          string   `json:"title"`
+		JapaneseTitle  string   `json:"japaneseTitle"`
+		Synopsis       string   `json:"synopsis"`
+		CoverImageUrl  string   `json:"coverImageUrl"`
+		BannerImageUrl string   `json:"bannerImageUrl"`
+		TrailerUrl     string   `json:"trailerUrl"`
+		Status         string   `json:"status"`
+		TotalEpisodes  int      `json:"totalEpisodes"`
+		ReleaseYear    int      `json:"releaseYear"`
+		Season         string   `json:"season"`
+		Source         string   `json:"source"`
+		AgeRating      string   `json:"ageRating"`
+		GenreIDs       []string `json:"genreIds"`
+		StudioIDs      []string `json:"studioIds"`
+	}
+	if c.ShouldBindJSON(&req) != nil {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	item, err := h.deps.AnimeService.Create(c.Request.Context(), principal.UserID, req.Title, req.JapaneseTitle, req.Synopsis, req.CoverImageUrl, req.BannerImageUrl, req.TrailerUrl, req.Status, req.TotalEpisodes, req.ReleaseYear, req.Season, req.Source, req.AgeRating, req.GenreIDs, req.StudioIDs)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusCreated, item)
+}
+
+func (h *AnimeHandler) Update(c *gin.Context) {
+	id := c.Param("animeId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	principal, ok := middleware.GetPrincipal(c)
+	if !ok {
+		utils.Error(c, utils.ErrUnauthorized)
+		return
+	}
+	var req struct {
+		Title          *string  `json:"title"`
+		JapaneseTitle  *string  `json:"japaneseTitle"`
+		Synopsis       *string  `json:"synopsis"`
+		CoverImageUrl  *string  `json:"coverImageUrl"`
+		BannerImageUrl *string  `json:"bannerImageUrl"`
+		TrailerUrl     *string  `json:"trailerUrl"`
+		Status         *string  `json:"status"`
+		Rating         *float64 `json:"rating"`
+		TotalEpisodes  *int     `json:"totalEpisodes"`
+		ReleaseYear    *int     `json:"releaseYear"`
+		Season         *string  `json:"season"`
+		Source         *string  `json:"source"`
+		AgeRating      *string  `json:"ageRating"`
+		IsFeatured     *bool    `json:"isFeatured"`
+		IsTrending     *bool    `json:"isTrending"`
+		GenreIDs       []string `json:"genreIds"`
+		StudioIDs      []string `json:"studioIds"`
+	}
+	if c.ShouldBindJSON(&req) != nil {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	item, err := h.deps.AnimeService.Update(c.Request.Context(), principal.UserID, id, req)
+	if err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, item)
+}
+
+func (h *AnimeHandler) Delete(c *gin.Context) {
+	id := c.Param("animeId")
+	if id == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	if err := h.deps.AnimeService.Delete(c.Request.Context(), id); err != nil {
+		utils.Error(c, err)
+		return
+	}
+	utils.Success(c, http.StatusOK, gin.H{"deleted": true})
+}

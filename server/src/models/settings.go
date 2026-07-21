@@ -1,36 +1,25 @@
 package models
 
-type UserSettings struct {
+import "gorm.io/datatypes"
+
+type SystemSetting struct {
 	Common
-	UserID        string  `gorm:"column:user_id;type:text;uniqueIndex;not null" json:"userId"`
-	Theme         string  `gorm:"column:theme;type:text;not null;default:'system'" json:"theme"`
-	Language      string  `gorm:"column:language;type:text;not null;default:'fr'" json:"language"`
-	Locale        string  `gorm:"column:locale;type:text;not null;default:'fr'" json:"locale"`
-	TimeZone      string  `gorm:"column:time_zone;type:text;not null;default:'Europe/Paris'" json:"timeZone"`
-	StatusMessage *string `gorm:"column:status_message;type:text" json:"statusMessage,omitempty"`
-	Density       string  `gorm:"column:density;type:text;not null;default:'comfortable'" json:"density"`
-	Contrast      string  `gorm:"column:contrast;type:text;not null;default:'default'" json:"contrast"`
-	SoundEnabled  bool    `gorm:"column:sound_enabled;not null;default:true" json:"soundEnabled"`
-	SecureSession bool    `gorm:"column:secure_session;not null;default:true" json:"secureSession"`
+	Key         string         `gorm:"column:key;type:text;uniqueIndex;not null" json:"key"`
+	Value       datatypes.JSON `gorm:"column:value;type:jsonb" json:"value"`
+	Category    string         `gorm:"column:category;type:text;not null" json:"category"`
+	Description string         `gorm:"column:description;type:text" json:"description"`
 }
 
-func (UserSettings) TableName() string {
-	return "user_settings"
-}
+func (SystemSetting) TableName() string { return "system_settings" }
 
-type NotificationPreference struct {
+type SeoMeta struct {
 	Common
-	UserID                      string `gorm:"column:user_id;type:text;uniqueIndex;not null" json:"userId"`
-	DirectMessageNotifications  bool   `gorm:"column:direct_message_notifications;not null;default:true" json:"directMessageNotifications"`
-	MentionNotifications        bool   `gorm:"column:mention_notifications;not null;default:true" json:"mentionNotifications"`
-	ChannelMessageNotifications bool   `gorm:"column:channel_message_notifications;not null;default:true" json:"channelMessageNotifications"`
-	MeetingReminders            bool   `gorm:"column:meeting_reminders;not null;default:true" json:"meetingReminders"`
-	CallNotifications           bool   `gorm:"column:call_notifications;not null;default:true" json:"callNotifications"`
-	EmailNotifications          bool   `gorm:"column:email_notifications;not null;default:true" json:"emailNotifications"`
-	SoundEnabled                bool   `gorm:"column:sound_enabled;not null;default:true" json:"soundEnabled"`
-	DesktopNotifications        bool   `gorm:"column:desktop_notifications;not null;default:true" json:"desktopNotifications"`
+	PagePath     string `gorm:"column:page_path;type:text;uniqueIndex;not null" json:"pagePath"`
+	Title        string `gorm:"column:title;type:text" json:"title"`
+	Description  string `gorm:"column:description;type:text" json:"description"`
+	Keywords     string `gorm:"column:keywords;type:text" json:"keywords"`
+	OgImage      string `gorm:"column:og_image;type:text" json:"ogImage"`
+	CanonicalUrl string `gorm:"column:canonical_url;type:text" json:"canonicalUrl"`
 }
 
-func (NotificationPreference) TableName() string {
-	return "notification_preferences"
-}
+func (SeoMeta) TableName() string { return "seo_meta" }

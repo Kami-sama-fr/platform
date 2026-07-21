@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/skygenesisenterprise/aether-account/server/src/middleware"
-	"github.com/skygenesisenterprise/aether-account/server/src/services"
-	"github.com/skygenesisenterprise/aether-account/server/src/utils"
+	"github.com/kami-sama-fr/platform/server/src/middleware"
+	"github.com/kami-sama-fr/platform/server/src/services"
+	"github.com/kami-sama-fr/platform/server/src/utils"
 )
 
 type PlatformHandler struct {

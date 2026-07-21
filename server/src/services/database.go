@@ -3,13 +3,15 @@ package services
 import (
 	"context"
 
-	"github.com/skygenesisenterprise/aether-account/server/src/models"
+	"github.com/kami-sama-fr/platform/server/src/models"
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 type DatabaseService struct {
-	db *gorm.DB
+	db     *gorm.DB
+	isLite bool
 }
 
 func NewDatabaseService(dsn string) (*DatabaseService, error) {
@@ -18,6 +20,11 @@ func NewDatabaseService(dsn string) (*DatabaseService, error) {
 		return nil, err
 	}
 	return &DatabaseService{db: db}, nil
+}
+
+func NewNilDatabaseService() *DatabaseService {
+	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	return &DatabaseService{db: db, isLite: true}
 }
 
 func (s *DatabaseService) Gorm() *gorm.DB {
@@ -33,6 +40,9 @@ func (s *DatabaseService) Ping(ctx context.Context) error {
 }
 
 func (s *DatabaseService) Close() error {
+	if s.isLite {
+		return nil
+	}
 	sqlDB, err := s.db.DB()
 	if err != nil {
 		return err
@@ -45,6 +55,9 @@ func (s *DatabaseService) Transaction(ctx context.Context, fn func(tx *gorm.DB) 
 }
 
 func (s *DatabaseService) AutoMigrate() error {
+	if s.isLite {
+		return nil
+	}
 	if err := s.normalizeLegacyAuthSessionSchema(); err != nil {
 		return err
 	}
@@ -62,10 +75,35 @@ func (s *DatabaseService) AutoMigrate() error {
 		&models.AuthAccount{},
 		&models.Workspace{},
 		&models.WorkspaceMember{},
+		&models.Anime{},
+		&models.Genre{},
+		&models.Studio{},
+		&models.Character{},
+		&models.Episode{},
+		&models.MediaAsset{},
+		&models.EncodingJob{},
+		&models.Review{},
+		&models.Comment{},
+		&models.Report{},
+		&models.Watchlist{},
+		&models.WatchlistItem{},
+		&models.WatchProgress{},
+		&models.WatchHistory{},
+		&models.Simulcast{},
+		&models.ReleaseSchedule{},
+		&models.Notification{},
+		&models.SystemSetting{},
+		&models.AuditLog{},
+		&models.Contact{},
+		&models.ContactGroup{},
+		&models.SeoMeta{},
 	)
 }
 
 func (s *DatabaseService) normalizeLegacyAuthSessionSchema() error {
+	if s.isLite {
+		return nil
+	}
 	return s.db.Exec(`
 DO $$
 BEGIN
