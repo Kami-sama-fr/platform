@@ -2,12 +2,10 @@ packages:
   - "apps"
   - "tools"
   - "tests"
-  - "package/snap"
+  - "packages/bot"
+  - "packages/node"
+  - "packages/cli"
   - "server/prisma"
-  - "package/node"
-  - "package/github"
-  - "package/vscode"
-  - "package/cli"
 
 ignoredBuiltDependencies:
   - sharp
