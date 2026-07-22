@@ -346,12 +346,18 @@ importers:
       '@discordjs/voice':
         specifier: ^0.18.0
         version: 0.18.0
+      '@prisma/client':
+        specifier: ^7.8.0
+        version: 7.9.0(prisma@7.9.0(@types/react-dom@19.1.11(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.5(react@19.2.3))(react@19.2.3)(typescript@5.9.3))(typescript@5.9.3)
       discord.js:
         specifier: ^14.25.1
         version: 14.27.0
       dotenv:
         specifier: ^17.2.3
         version: 17.4.2
+      prisma:
+        specifier: ^7.8.0
+        version: 7.9.0(@types/react-dom@19.1.11(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.5(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
 
   packages/cli:
     dependencies:

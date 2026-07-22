@@ -99,7 +99,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    image: kami-sama/platform:latest-dev
+    image: skygenesisenterprise/kami-sama:latest-dev
     pull_policy: never
     restart: unless-stopped
     expose:
@@ -129,7 +129,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    image: kami-sama/platform:latest-dev
+    image: skygenesisenterprise/kami-sama:latest-dev
     pull_policy: never
     restart: unless-stopped
     ports:

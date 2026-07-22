@@ -87,7 +87,7 @@ services:
       dockerfile: Dockerfile.cloud
       args:
         DATABASE_URL: postgresql://${PG_USER:-postgres}:${PG_PASS:-postgres}@postgresql:5432/${PG_DB:-postgres}
-    image: kami-sama/platform:${APP_IMAGE_TAG:-cloud}
+    image: skygenesisenterprise/kami-sama:${APP_IMAGE_TAG:-cloud}
     restart: unless-stopped
     expose:
       - 3000
@@ -115,7 +115,7 @@ services:
       dockerfile: Dockerfile.cloud
       args:
         DATABASE_URL: postgresql://${PG_USER:-postgres}:${PG_PASS:-postgres}@postgresql:5432/${PG_DB:-postgres}
-    image: kami-sama/platform:${APP_IMAGE_TAG:-cloud}
+    image: skygenesisenterprise/kami-sama:${APP_IMAGE_TAG:-cloud}
     restart: unless-stopped
     expose:
       - 8080
