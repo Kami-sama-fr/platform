@@ -232,13 +232,10 @@ export async function Footer({ locale: initialLocale }: FooterProps) {
   ];
 
   const footerSections = [
-    { title: t("platformApi"), links: platformApiLinks },
-    { title: t("developers"), links: developerLinks },
     { title: t("resources"), links: resourcesLinks },
     { title: t("company"), links: companyLinks },
     { title: t("support"), links: supportLinks },
     { title: t("legal"), links: legalLinks },
-    { title: t("other"), links: otherLinks },
   ];
 
   const socialLinks = [
