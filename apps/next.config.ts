@@ -6,6 +6,10 @@ const isProduction = process.env.NODE_ENV === "production";
 const isStaticWebBuild = process.env.BUILD_WEB_STATIC === "true";
 
 const nextConfig: NextConfig = {
+  // Vidstack ships as ESM with non-standard `exports` conditions (e.g.
+  // `development`, `deno`) and is verified to need transpilation under
+  // Next.js 16 / Turbopack. See https://docs.vidstack.io/player/getting-started/installation/nextjs
+  transpilePackages: ["@vidstack/react", "vidstack"],
   turbopack: {
     root: "../",
   },

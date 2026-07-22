@@ -15,10 +15,22 @@ import type {
 } from '@/types/anime'
 
 /**
- * Mock data source. In production these would be fetched from api.kami-sama.fr.
- * The shapes mirror the interfaces in types/anime.ts so swapping to the real
- * API only requires replacing the accessor functions at the bottom of this file.
+ * Subtitle sidecar tracks. In production these come from the API per-episode.
+ * Here we generate a stable set of BCP-47 codes + display labels so every
+ * mock episode can render a captions menu without hardcoding paths per episode.
  */
+const SUBTITLE_LANGS: { lang: string; label: string }[] = [
+  { lang: 'fr', label: 'Français' },
+  { lang: 'en', label: 'English' },
+  { lang: 'de', label: 'Deutsch' },
+  { lang: 'es-419', label: 'Español (América Latina)' },
+  { lang: 'es-ES', label: 'Español (España)' },
+  { lang: 'it', label: 'Italiano' },
+  { lang: 'pl', label: 'Polski' },
+  { lang: 'pt-BR', label: 'Português (Brasil)' },
+  { lang: 'ru', label: 'Русский' },
+  { lang: 'ar', label: 'العربية' },
+]
 
 export const GENRES: Genre[] = [
   { id: 'fantasy', name: 'Fantasy' },
@@ -66,6 +78,7 @@ function makeEpisodes(
   animeId: string,
   seasonCounts: number[],
   thumbnail: string,
+  cover: string,
 ): Episode[] {
   const episodes: Episode[] = []
   seasonCounts.forEach((count, sIndex) => {
@@ -80,8 +93,16 @@ function makeEpisodes(
         description:
           'The story deepens as our heroes confront new challenges and uncover truths that will reshape their journey.',
         thumbnail,
+        cover,
         duration: 1440,
         releaseDate: `2024-0${((n % 9) + 1)}-15`,
+        videoUrl: `/videos/${animeId}/s${season}e${n}.mp4`,
+        tracks: SUBTITLE_LANGS.map((s) => ({
+          lang: s.lang,
+          label: s.label,
+          src: `/videos/${animeId}/s${season}e${n}.${s.lang}.vtt`,
+          default: s.lang === 'fr',
+        })),
       })
     }
   })
@@ -420,6 +441,7 @@ const EPISODE_CACHE: Record<string, Episode[]> = Object.fromEntries(
       a.id,
       a.seasons.map((s) => s.episodeCount),
       a.cover,
+      a.banner,
     ),
   ]),
 )

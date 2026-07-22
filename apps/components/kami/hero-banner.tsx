@@ -3,7 +3,8 @@
 import * as React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Bookmark, ChevronLeft, ChevronRight, Play } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { Play, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
@@ -17,8 +18,11 @@ const SLIDE_DURATION = 8000
 
 export function HeroBanner({ items }: HeroBannerProps) {
   const { isAuthenticated } = useAuth()
+  const pathname = usePathname()
+  const currentLocale = pathname?.split('/')[1] || 'fr'
   const [activeIndex, setActiveIndex] = React.useState(0)
   const [isPaused, setIsPaused] = React.useState(false)
+  const [isMuted, setIsMuted] = React.useState(true)
 
   React.useEffect(() => {
     if (activeIndex >= items.length) setActiveIndex(0)
@@ -44,11 +48,11 @@ export function HeroBanner({ items }: HeroBannerProps) {
   if (items.length === 0) return null
 
   const anime = items[activeIndex]
-  const genres = anime.genres.slice(0, 3).map((genre) => genre.name).join(', ')
+  const genres = anime.genres.slice(0, 2).map((genre) => genre.name).join(', ')
 
   return (
     <section
-      className="relative isolate min-h-[min(57rem,calc(100dvh-3rem))] overflow-hidden bg-paper text-ink"
+      className="relative isolate mx-3 mt-3 h-[76vh] min-h-120 max-h-200 overflow-hidden rounded-2xl bg-[#1a1a1a] md:mx-5 md:mt-4 lg:mx-8 xl:mx-20"
       aria-roledescription="carousel"
       aria-label="Anime à la une"
       onMouseEnter={() => setIsPaused(true)}
@@ -72,113 +76,77 @@ export function HeroBanner({ items }: HeroBannerProps) {
             priority={index === 0}
             loading={index === 0 ? 'eager' : undefined}
             sizes="100vw"
-            className="object-cover object-[63%_center] md:object-center"
+            className="object-cover object-center"
           />
         </div>
       ))}
 
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(13,13,13,0.98)_0%,rgba(13,13,13,0.9)_24%,rgba(13,13,13,0.58)_43%,rgba(13,13,13,0.12)_67%,rgba(13,13,13,0)_86%)]" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[46%] bg-linear-to-t from-paper via-paper/55 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-linear-to-r from-black/80 via-black/40 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-[#141414] via-[#141414]/60 to-transparent" />
 
-      <div className="relative z-10 flex min-h-[min(57rem,calc(100dvh-3rem))] items-center px-5 pb-15 pt-20 sm:px-8 lg:px-12 xl:px-20">
-        <div key={anime.id} className="max-w-xl animate-[hero-copy-in_450ms_ease-out] motion-reduce:animate-none">
-          <h1 className="font-display text-5xl font-extrabold leading-[0.9] tracking-[-0.045em] text-ink drop-shadow-[0_3px_18px_rgba(0,0,0,0.55)] sm:text-6xl lg:text-7xl">
+      <div className="relative z-10 flex h-full flex-col justify-end px-6 pb-20 pt-20 sm:px-10 lg:px-14 xl:px-20">
+        <div key={anime.id} className="max-w-3xl animate-[hero-copy-in_450ms_ease-out] motion-reduce:animate-none">
+          <h1 className="font-display text-5xl font-black leading-[0.9] tracking-[-0.03em] text-white sm:text-6xl md:text-7xl lg:text-8xl xl:text-[7.5rem]">
             {anime.title}
           </h1>
-          {anime.japaneseTitle && (
-            <p className="mt-3 font-display text-lg font-semibold tracking-wide text-ink/90 sm:text-xl">
-              {anime.japaneseTitle}
-            </p>
-          )}
 
-          <div className="mt-7 flex flex-wrap items-center gap-x-1.5 gap-y-2 text-sm text-ink-soft">
-            <span className="bg-ink/20 px-1.5 py-0.5 text-xs font-bold text-ink">{anime.ageRating}</span>
-            <span aria-hidden="true">•</span>
-            <span>Sous-titrage | Doublage</span>
+          <div className="mt-4 flex flex-wrap items-center gap-x-2 text-sm font-medium text-white/90">
+            <span>{anime.totalEpisodes > 1 ? 'Série' : 'Film'}</span>
             {genres && (
               <>
                 <span aria-hidden="true">•</span>
                 <span>{genres}</span>
               </>
             )}
+            <span aria-hidden="true">•</span>
+            <span>{anime.year}</span>
+            <span aria-hidden="true">•</span>
+            <span className="flex items-center gap-1.5">
+              <span className="flex size-6 items-center justify-center rounded border border-white/60 text-xs font-bold text-white">
+                {anime.ageRating}
+              </span>
+            </span>
           </div>
 
-          <p className="mt-2 line-clamp-3 max-w-lg text-sm leading-6 text-ink/90 sm:text-base sm:leading-6">
-            {anime.synopsis}
-          </p>
-
-          <div className="mt-7 flex items-center gap-2">
+          <div className="mt-6 flex items-center gap-3">
             <Button
               asChild
-              className="h-10 rounded-none bg-primary px-4 text-xs font-bold uppercase text-primary-foreground transition-colors duration-200 hover:bg-stamp-dim focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+              className="h-11 rounded-sm bg-white px-7 text-sm font-semibold text-black transition-colors duration-200 hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-white"
             >
-              <Link href={`/watch/${anime.slug}`}>
-                <Play className="size-4 fill-current" aria-hidden="true" />
-                Lecture E1
+              <Link href={`/${currentLocale}/watch/${anime.slug}`}>
+                <Play className="size-5 fill-current" aria-hidden="true" />
+                Lecture
               </Link>
             </Button>
-            {isAuthenticated && (
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="size-10 rounded-none border-2 border-primary bg-transparent text-primary transition-colors duration-200 hover:bg-primary hover:text-primary-foreground focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
-                aria-label={`Ajouter ${anime.title} à votre Watchlist`}
-              >
-                <Bookmark className="size-4" aria-hidden="true" />
-              </Button>
-            )}
+            <Button
+              asChild
+              variant="outline"
+              className="h-11 rounded-sm border-white/40 bg-white/10 px-7 text-sm font-semibold text-white backdrop-blur-sm transition-colors duration-200 hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <Link href={`/${currentLocale}/anime/${anime.slug}`}>
+                Plus d&apos;infos
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
 
-      {items.length > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={() => selectSlide(activeIndex - 1)}
-            className="absolute left-2 top-[44%] z-20 hidden size-12 -translate-y-1/2 items-center justify-center text-ink transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink md:flex"
-            aria-label="Anime précédent"
-          >
-            <ChevronLeft className="size-9" strokeWidth={2.5} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => selectSlide(activeIndex + 1)}
-            className="absolute right-2 top-[44%] z-20 hidden size-12 -translate-y-1/2 items-center justify-center text-ink transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink md:flex"
-            aria-label="Anime suivant"
-          >
-            <ChevronRight className="size-9" strokeWidth={2.5} aria-hidden="true" />
-          </button>
-        </>
-      )}
-
-      {items.length > 1 && (
-        <div
-          className="absolute bottom-52 left-5 z-20 flex items-center gap-2 sm:left-8 lg:left-12 xl:left-20"
-          role="tablist"
-          aria-label="Sélection d’anime à la une"
-        >
-          {items.map((item, index) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={index === activeIndex}
-              aria-label={`Afficher ${item.title}`}
-              onClick={() => selectSlide(index)}
-              className={cn(
-                'h-2 rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink',
-                index === activeIndex ? 'w-6 bg-primary' : 'w-6 bg-ink/50 hover:bg-ink/80',
-              )}
-            />
-          ))}
-        </div>
-      )}
+      <button
+        type="button"
+        onClick={() => setIsMuted(!isMuted)}
+        className="absolute right-5 top-5 z-20 flex size-11 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white backdrop-blur-md transition-all duration-200 hover:bg-black/80 hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:right-8 lg:right-12 xl:right-20"
+        aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
+      >
+        {isMuted ? (
+          <VolumeX className="size-5" strokeWidth={1.5} />
+        ) : (
+          <Volume2 className="size-5" strokeWidth={1.5} />
+        )}
+      </button>
 
       <style>{`
         @keyframes hero-copy-in {
-          from { opacity: 0; transform: translateY(0.75rem); }
+          from { opacity: 0; transform: translateY(1rem); }
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>

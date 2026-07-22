@@ -25,6 +25,17 @@ export interface Character {
   voiceActor?: string
 }
 
+export interface SubtitleTrack {
+  /** BCP-47 language code, e.g. `fr`, `en`, `pt-BR`. */
+  lang: string
+  /** Human-readable label shown in the captions menu, e.g. `Français`. */
+  label: string
+  /** URL to a WebVTT (.vtt) sidecar file. */
+  src: string
+  /** Mark this track as the default selection. */
+  default?: boolean
+}
+
 export interface Episode {
   id: string
   animeId: string
@@ -33,6 +44,10 @@ export interface Episode {
   title: string
   description?: string
   thumbnail: string
+  cover: string
+  videoUrl: string
+  /** Caption / subtitle sidecar tracks, in display order. */
+  tracks: SubtitleTrack[]
   /** Duration in seconds. */
   duration: number
   releaseDate: string

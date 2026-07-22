@@ -146,6 +146,12 @@ func main() {
 	userService := services.NewUserService(repos.Users(), repos.UserSettings(), repos.NotificationPreferences(), presence)
 	workspaceService := services.NewWorkspaceService(db, cfg.Auth, repos.Users(), repos)
 	authService := services.NewAuthService(cfg.Auth, db, repos, identityProvider, authLimiter, workspaceService)
+	
+	// S'assurer que le premier utilisateur a les rôles superadmin
+	if err := authService.EnsureFirstUserHasAdminRoles(context.Background()); err != nil {
+		logger.Warn("failed to ensure first user has admin roles", "error", err)
+	}
+	
 	oauthService := services.NewOAuthService(cfg.OAuth, repos, authService, identityProvider, workspaceService, nil)
 
 	animeService := services.NewAnimeService(repos)

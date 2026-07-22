@@ -1,15 +1,3 @@
-/**
- * Sky Genesis Enterprise
- *
- * Scope: Official Website
- * Component: Footer
- * Layer: Public UI
- * Purpose: Provides global navigation, legal links, resources and trust entry points.
- *
- * Stability: Active
- * Owner: SGE Web Platform
- * Contact: contact@skygenesisenterprise.com
- */
 import Link from "next/link";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
@@ -255,15 +243,10 @@ export async function Footer({ locale: initialLocale }: FooterProps) {
 
   const socialLinks = [
     { name: "X (Twitter)", href: "https://x.com/KamiSamaTV" },
-    { name: "LinkedIn", href: "https://linkedin.com/company/kami-sama" },
     { name: "GitHub", href: "https://github.com/kami-sama" },
     { name: "YouTube", href: "https://youtube.com/@kami-sama" },
     { name: "Discord", href: "https://discord.gg/skygenesisenterprise" },
-    { name: "Slack", href: "https://slack.com/kami-sama" },
-    { name: "Twitch", href: "https://twitch.tv/kami-sama-tv" },
     { name: "Instagram", href: "https://instagram.com/kami-sama" },
-    { name: "Facebook", href: "https://facebook.com/kami-sama" },
-    { name: "Mastodon", href: "https://mastodon.social/@kami-sama" },
   ];
 
   return (
@@ -385,7 +368,17 @@ export async function Footer({ locale: initialLocale }: FooterProps) {
         <div className="mx-auto max-w-7xl px-6 py-5">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-muted-foreground">{t("copyright")}</p>
+              <p className="text-xs text-muted-foreground">
+                {t("copyright", { year: new Date().getFullYear() })}
+                <Link
+                  href="https://skygenesisenterprise.com"
+                  className="hover:text-foreground transition-colors duration-200"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {t("companyName")}
+                </Link>
+              </p>
               <p className="text-xs text-muted-foreground">
                 <Link
                   href={`${prefix}/pgp`}

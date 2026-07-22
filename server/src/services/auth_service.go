@@ -97,6 +97,19 @@ func (s *AuthService) Register(ctx context.Context, req RegisterInput, meta Requ
 
 	now := time.Now().UTC()
 	userID := utils.NewID()
+	
+	// Déterminer les rôles et permissions pour le premier utilisateur
+	isFirstUser := s.isFirstUser(ctx)
+	var initialRoles []string
+	var initialPermissions []string
+	if isFirstUser {
+		initialRoles = []string{"superadmin", "admin", "owner"}
+		initialPermissions = roleToPermissions("superadmin")
+	} else {
+		initialRoles = []string{"member"}
+		initialPermissions = roleToPermissions("member")
+	}
+	
 	user := &models.User{
 		Common:          models.Common{ID: userID, CreatedAt: now, UpdatedAt: now},
 		Email:           email,
@@ -104,6 +117,8 @@ func (s *AuthService) Register(ctx context.Context, req RegisterInput, meta Requ
 		DisplayName:     strings.TrimSpace(req.DisplayName),
 		Status:          "active",
 		PresenceStatus:  "offline",
+		Roles:           initialRoles,
+		Permissions:     initialPermissions,
 	}
 	credential := &models.LocalCredential{
 		Common:            models.Common{ID: utils.NewID(), CreatedAt: now, UpdatedAt: now},
@@ -113,7 +128,7 @@ func (s *AuthService) Register(ctx context.Context, req RegisterInput, meta Requ
 	}
 
 	var workspaceID string
-	isFirstUser := s.isFirstUser(ctx)
+	isFirstUser = s.isFirstUser(ctx)
 	err = s.db.Transaction(ctx, func(tx *gorm.DB) error {
 		txRepos := s.repos.WithDB(tx)
 		if err := txRepos.Users().Create(ctx, user); err != nil {
@@ -162,17 +177,74 @@ func (s *AuthService) Register(ctx context.Context, req RegisterInput, meta Requ
 		return nil, err
 	}
 
-	roles := []string{"owner"}
+	// Pour le premier utilisateur, attribuer les rôles superadmin
+	var roles []string
+	var permissions []string
 	if isFirstUser {
-		roles = []string{"superadmin", "admin", "owner"}
+		roles = s.GetFirstUserRoles()
+		permissions = s.GetFirstUserPermissions()
+	} else {
+		roles = []string{"owner"}
+		permissions = roleToPermissions("owner")
 	}
-	return s.createAuthenticatedSession(ctx, user, &workspaceID, roleToPermissions("superadmin"), roles, meta)
+	return s.createAuthenticatedSession(ctx, user, &workspaceID, permissions, roles, meta)
 }
 
 func (s *AuthService) isFirstUser(ctx context.Context) bool {
 	var count int64
 	s.db.Gorm().Model(&models.User{}).Count(&count)
 	return count == 0
+}
+
+// EnsureFirstUserHasAdminRoles s'assure que le premier utilisateur a les rôles superadmin
+// Cette fonction peut être appelée au démarrage ou lors de la création du premier utilisateur
+func (s *AuthService) EnsureFirstUserHasAdminRoles(ctx context.Context) error {
+	// Trouver le premier utilisateur (le plus ancien)
+	var firstUser models.User
+	if err := s.db.Gorm().
+		Model(&models.User{}).
+		Order("created_at ASC").
+		First(&firstUser).Error; err != nil {
+		return err // Pas d'utilisateurs encore, c'est normal
+	}
+
+	// Vérifier si l'utilisateur a déjà les rôles admin
+	hasSuperAdminRole := false
+	for _, role := range firstUser.Roles {
+		if role == "superadmin" {
+			hasSuperAdminRole = true
+			break
+		}
+	}
+
+	if hasSuperAdminRole {
+		return nil // Déjà superadmin, rien à faire
+	}
+
+	// Mettre à jour les rôles de l'utilisateur
+	firstUser.Roles = []string{"superadmin", "admin", "owner"}
+	firstUser.Permissions = roleToPermissions("superadmin")
+	firstUser.UpdatedAt = time.Now().UTC()
+
+	if err := s.repos.Users().Update(ctx, &firstUser); err != nil {
+		return err
+	}
+
+	// Note: Les workspace members seront mis à jour automatiquement lors de la création
+	// ou via les endpoints admin. Le plus important est que l'utilisateur ait les rôles
+	// et permissions au niveau de la plateforme.
+
+	return nil
+}
+
+// GetFirstUserRoles retourne les rôles à attribuer au premier utilisateur
+func (s *AuthService) GetFirstUserRoles() []string {
+	return []string{"superadmin", "admin", "owner"}
+}
+
+// GetFirstUserPermissions retourne les permissions à attribuer au premier utilisateur
+func (s *AuthService) GetFirstUserPermissions() []string {
+	return roleToPermissions("superadmin")
 }
 
 type RegisterInput struct {

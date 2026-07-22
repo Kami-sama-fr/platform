@@ -93,9 +93,11 @@ function replaceWorkspaceParam(
   searchParams: URLSearchParams | null,
   workspaceId: string
 ): void {
+  // Remove workspaceId from URL - no longer needed
   const nextParams = new URLSearchParams(searchParams?.toString() ?? "");
-  nextParams.set("workspaceId", workspaceId);
-  router.replace(`${pathname}?${nextParams.toString()}`);
+  nextParams.delete("workspaceId");
+  const paramsString = nextParams.toString();
+  router.replace(paramsString ? `${pathname}?${paramsString}` : pathname);
 }
 
 // Component that uses useSearchParams - needs to be wrapped in Suspense
@@ -118,6 +120,16 @@ function PlatformProviderContent({ children }: { children: React.ReactNode }) {
     pathnameRef.current = pathname;
     searchParamsRef.current = searchParams;
   }, [pathname, searchParams]);
+
+  // Remove workspaceId from URL on mount if present
+  React.useEffect(() => {
+    if (workspaceIdFromQuery) {
+      const nextParams = new URLSearchParams(searchParams?.toString() ?? "");
+      nextParams.delete("workspaceId");
+      const paramsString = nextParams.toString();
+      router.replace(paramsString ? `${pathname}?${paramsString}` : pathname);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setActiveWorkspaceId = React.useCallback(
     (workspaceId: string) => {

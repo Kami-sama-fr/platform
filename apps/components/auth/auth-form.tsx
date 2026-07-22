@@ -11,6 +11,7 @@ import { getOAuthLoginUrl } from '@/lib/api/oauth'
 import { loginSchema, registerSchema } from '@/lib/auth/schemas'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from '@/components/ui/use-toast'
+import { saveSession, saveSessionPreferences } from '@/lib/api/session-persistence'
 
 type Mode = 'login' | 'register'
 
@@ -73,7 +74,7 @@ export function AuthForm() {
     return '/profile'
   }
 
-  async function handleOAuthLogin(provider: string) {
+  async function handleOAuthLogin(provider: "google" | "github" | "discord" | "apple") {
     try {
       const { url } = await getOAuthLoginUrl(provider, 'login')
       window.location.href = url
@@ -86,6 +87,8 @@ export function AuthForm() {
       })
     }
   }
+
+  const [rememberMe, setRememberMe] = useState(true)
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -107,6 +110,15 @@ export function AuthForm() {
         const response = await authApi.register(payload)
         
         if (response) {
+          // Save session with persistence
+          saveSession(
+            response.accessToken,
+            response.refreshToken ?? '',
+            response.user,
+            response.sessionId ?? `session-${Date.now()}`,
+            response.expiresIn ?? 3600
+          )
+          
           toast({
             title: 'Account created',
             description: 'Your account has been created successfully.',
@@ -126,6 +138,16 @@ export function AuthForm() {
         const response = await authApi.login(payload)
         
         if (response) {
+          // Save session with persistence
+          saveSession(
+            response.accessToken,
+            response.refreshToken ?? '',
+            response.user,
+            response.sessionId ?? `session-${Date.now()}`,
+            response.expiresIn ?? 3600
+          )
+          saveSessionPreferences({ rememberMe })
+          
           toast({
             title: 'Welcome back',
             description: 'You have been logged in successfully.',
@@ -233,6 +255,18 @@ export function AuthForm() {
           {...(isRegister ? registerForm.register('email') : loginForm.register('email'))}
           error={isRegister ? registerForm.formState.errors.email?.message : loginForm.formState.errors.email?.message}
         />
+
+        {!isRegister && (
+          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="size-4 rounded border-input accent-primary"
+            />
+            <span>Remember me</span>
+          </label>
+        )}
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">

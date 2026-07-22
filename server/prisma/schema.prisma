@@ -19,6 +19,8 @@ model User {
   avatarUrl         String?   @map("avatar_url")
   status            String    @default("active")
   presenceStatus    String    @default("offline") @map("presence_status")
+  roles             String[]  @default([]) @map("roles")
+  permissions       String[]  @default([]) @map("permissions")
   lastSeenAt        DateTime? @map("last_seen_at")
   emailVerifiedAt   DateTime? @map("email_verified_at")
   passwordChangedAt DateTime? @map("password_changed_at")

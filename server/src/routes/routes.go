@@ -128,6 +128,9 @@ func SetupRoutes(router *gin.Engine, deps Dependencies) {
 			authProtected.DELETE("/sessions/:sessionId", handler.deleteAuthSession)
 			authProtected.GET("/oauth/accounts", handler.listOAuthAccounts)
 			authProtected.DELETE("/oauth/:provider", handler.unlinkOAuthAccount)
+			authProtected.POST("/ensure-first-user-admin", handler.ensureFirstUserIsAdmin)
+			authProtected.GET("/first-user", handler.getFirstUserInfo)
+			authProtected.POST("/ensure-user-owner", handler.ensureUserIsOwner)
 		}
 	}
 

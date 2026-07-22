@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kami-sama-fr/platform/server/src/interfaces"
 	"github.com/kami-sama-fr/platform/server/src/models"
 	"github.com/kami-sama-fr/platform/server/src/services"
 	"github.com/kami-sama-fr/platform/server/src/utils"
@@ -455,4 +456,130 @@ func issueOpaqueTokenAuth(length int) (string, string, error) {
 func normalizeEmailAuth(email string) (string, string) {
 	trimmed := strings.TrimSpace(email)
 	return trimmed, strings.ToLower(trimmed)
+}
+
+// ensureFirstUserIsAdmin s'assure que le premier utilisateur a les rôles admin
+// Cette route peut être appelée manuellement si nécessaire
+func (h *apiHandler) ensureFirstUserIsAdmin(c *gin.Context) {
+	// Vérifier que l'utilisateur actuel est admin (pour éviter les abus)
+	principal, exists := c.Get("principal")
+	if !exists {
+		utils.Error(c, utils.ErrUnauthorized)
+		return
+	}
+	
+	p := principal.(interfaces.Principal)
+	isAdmin := false
+	for _, role := range p.Roles {
+		if role == "admin" || role == "superadmin" {
+			isAdmin = true
+			break
+		}
+	}
+	
+	if !isAdmin {
+		utils.Error(c, utils.ErrForbidden)
+		return
+	}
+	
+	if err := h.deps.AuthService.EnsureFirstUserHasAdminRoles(c.Request.Context()); err != nil {
+		utils.Error(c, err)
+		return
+	}
+	
+	utils.Success(c, http.StatusOK, gin.H{"message": "First user has been ensured admin roles"})
+}
+
+// getFirstUserInfo retourne les informations du premier utilisateur
+func (h *apiHandler) getFirstUserInfo(c *gin.Context) {
+	// Trouver le premier utilisateur
+	var firstUser models.User
+	if err := h.deps.Database.Gorm().
+		Model(&models.User{}).
+		Order("created_at ASC").
+		First(&firstUser).Error; err != nil {
+		utils.Error(c, utils.NewError(http.StatusNotFound, "NOT_FOUND", "No users found", nil))
+		return
+	}
+	
+	utils.Success(c, http.StatusOK, gin.H{
+		"user": gin.H{
+			"id":          firstUser.ID,
+			"email":       firstUser.Email,
+			"displayName": firstUser.DisplayName,
+			"roles":       firstUser.Roles,
+			"permissions": firstUser.Permissions,
+			"createdAt":   firstUser.CreatedAt,
+		},
+	})
+}
+
+// ensureUserIsOwner force un utilisateur spécifique à être owner/superadmin
+// Endpoint temporaire pour corriger manuellement un utilisateur
+func (h *apiHandler) ensureUserIsOwner(c *gin.Context) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if c.ShouldBindJSON(&req) != nil || req.Email == "" {
+		utils.Error(c, utils.ErrValidationFailed)
+		return
+	}
+	
+	// Vérifier que l'utilisateur actuel est admin
+	principal, exists := c.Get("principal")
+	if !exists {
+		utils.Error(c, utils.ErrUnauthorized)
+		return
+	}
+	
+	p := principal.(interfaces.Principal)
+	isAdmin := false
+	for _, role := range p.Roles {
+		if role == "admin" || role == "superadmin" {
+			isAdmin = true
+			break
+		}
+	}
+	
+	if !isAdmin {
+		utils.Error(c, utils.ErrForbidden)
+		return
+	}
+	
+	// Trouver l'utilisateur par email
+	var user models.User
+	if err := h.deps.Database.Gorm().
+		Model(&models.User{}).
+		Where("email = ?", req.Email).
+		First(&user).Error; err != nil {
+		utils.Error(c, utils.NewError(http.StatusNotFound, "NOT_FOUND", "User not found", nil))
+		return
+	}
+	
+	// Mettre à jour les rôles
+	user.Roles = []string{"superadmin", "admin", "owner"}
+	// Définir toutes les permissions pour superadmin
+	user.Permissions = []string{
+		"workspace:read", "workspace:write",
+		"meeting:read", "meeting:write",
+		"session:read", "session:write",
+		"admin:read", "admin:write",
+		"platform:read", "platform:write",
+	}
+	user.UpdatedAt = time.Now().UTC()
+	
+	if err := h.deps.Database.Gorm().Save(&user).Error; err != nil {
+		utils.Error(c, err)
+		return
+	}
+	
+	utils.Success(c, http.StatusOK, gin.H{
+		"message": "User roles updated to superadmin",
+		"user": gin.H{
+			"id":          user.ID,
+			"email":       user.Email,
+			"roles":       user.Roles,
+			"permissions": user.Permissions,
+		},
+	})
 }
