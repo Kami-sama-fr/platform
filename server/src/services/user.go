@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kami-sama-fr/platform/server/src/interfaces"
-	"github.com/kami-sama-fr/platform/server/src/models"
-	"github.com/kami-sama-fr/platform/server/src/utils"
+	"github.com/skygenesisenterprise/kami-sama/server/src/interfaces"
+	"github.com/skygenesisenterprise/kami-sama/server/src/models"
+	"github.com/skygenesisenterprise/kami-sama/server/src/utils"
 )
 
 type StorageInfo struct {

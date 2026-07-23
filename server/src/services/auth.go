@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/kami-sama-fr/platform/server/src/config"
-	"github.com/kami-sama-fr/platform/server/src/interfaces"
-	"github.com/kami-sama-fr/platform/server/src/utils"
+	"github.com/skygenesisenterprise/kami-sama/server/src/config"
+	"github.com/skygenesisenterprise/kami-sama/server/src/interfaces"
+	"github.com/skygenesisenterprise/kami-sama/server/src/utils"
 )
 
 type JWTIdentityProvider struct {

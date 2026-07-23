@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { motion, AnimatePresence } from 'framer-motion'
+import { animate } from 'animejs'
 import {
   Bell,
   Bookmark,
@@ -464,25 +464,35 @@ function AnimatedDropdownContent({
   className?: string
   children: ReactNode
 }) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!ref.current) return
+    if (open) {
+      animate(ref.current, {
+        opacity: [0, 1],
+        scale: [0.95, 1],
+        translateY: [-4, 0],
+        duration: 200,
+        easing: 'easeOutCubic',
+      })
+    } else {
+      animate(ref.current, {
+        opacity: [1, 0],
+        scale: [1, 0.95],
+        translateY: [0, -4],
+        duration: 150,
+        easing: 'easeInCubic',
+      })
+    }
+  }, [open])
+
   return (
-    <AnimatePresence>
-      {open && (
-        <DropdownMenuContent
-          align={align}
-          forceMount
-          className={className}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -4 }}
-            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-          >
-            {children}
-          </motion.div>
-        </DropdownMenuContent>
-      )}
-    </AnimatePresence>
+    <DropdownMenuContent align={align} className={cn(open ? 'block' : 'hidden', className)}>
+      <div ref={ref}>
+        {children}
+      </div>
+    </DropdownMenuContent>
   )
 }
 

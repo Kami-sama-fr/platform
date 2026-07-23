@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/kami-sama-fr/platform/server/src/config"
-	"github.com/kami-sama-fr/platform/server/src/models"
+	"github.com/skygenesisenterprise/kami-sama/server/src/config"
+	"github.com/skygenesisenterprise/kami-sama/server/src/models"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )

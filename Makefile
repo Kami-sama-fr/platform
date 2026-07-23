@@ -68,7 +68,7 @@ rmi-dev:
 	docker rmi $(APP_NAME):latest 2>/dev/null || true
 
 dev-up:
-	docker compose -f docker-compose.dev.yml up -d
+	docker compose -f docker-compose.dev.yml up -d --force-recreate 
 
 dev-down:
 	docker compose -f docker-compose.dev.yml down

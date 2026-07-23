@@ -5,8 +5,8 @@ import (
 	"runtime"
 	"time"
 
-	redisclient "github.com/kami-sama-fr/platform/server/internal/redis"
-	"github.com/kami-sama-fr/platform/server/src/utils"
+	redisclient "github.com/skygenesisenterprise/kami-sama/server/internal/redis"
+	"github.com/skygenesisenterprise/kami-sama/server/src/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )

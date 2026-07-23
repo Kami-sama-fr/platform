@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kami-sama-fr/platform/server/src/utils"
+	"github.com/skygenesisenterprise/kami-sama/server/src/utils"
 )
 
 type DashboardHandler struct {

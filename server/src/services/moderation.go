@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/kami-sama-fr/platform/server/src/utils"
+	"github.com/skygenesisenterprise/kami-sama/server/src/utils"
 )
 
 type ModerationService struct {

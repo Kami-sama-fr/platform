@@ -9,6 +9,8 @@ services:
     depends_on:
       server:
         condition: service_started
+      worker:
+        condition: service_healthy
     networks:
       - kami-sama
 
@@ -135,6 +137,12 @@ services:
     ports:
       - 8080:8080
     command: air
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8080 || exit 1"]
+      start_period: 180s
+      interval: 5s
+      retries: 10
+      timeout: 5s
     environment:
       NODE_ENV: development
       USE_EMBEDDED_DB: "false"

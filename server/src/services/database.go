@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 
-	"github.com/kami-sama-fr/platform/server/src/models"
+	"github.com/skygenesisenterprise/kami-sama/server/src/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"

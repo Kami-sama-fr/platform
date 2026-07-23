@@ -9,7 +9,8 @@ import { cn } from '@/lib/utils'
 import { authApi } from '@/lib/api/auth'
 import { getOAuthLoginUrl } from '@/lib/api/oauth'
 import { loginSchema, registerSchema } from '@/lib/auth/schemas'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
+import { useRouter, usePathname } from '@/i18n/navigation'
 import { toast } from '@/components/ui/use-toast'
 import { saveSession, saveSessionPreferences } from '@/lib/api/session-persistence'
 
@@ -31,6 +32,7 @@ interface RegisterFormData {
 
 export function AuthForm() {
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect')
   const [mode, setMode] = useState<Mode>('login')
@@ -68,10 +70,8 @@ export function AuthForm() {
     if (redirectTo && redirectTo.startsWith('/')) {
       return redirectTo
     }
-    if (user?.roles?.some(r => ['superadmin', 'admin'].includes(r))) {
-      return '/dash'
-    }
-    return '/profile'
+    const locale = pathname.split('/')[1] || 'fr'
+    return `/${locale}/discover`
   }
 
   async function handleOAuthLogin(provider: "google" | "github" | "discord" | "apple") {

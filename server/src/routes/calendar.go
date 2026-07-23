@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kami-sama-fr/platform/server/src/middleware"
-	"github.com/kami-sama-fr/platform/server/src/services"
-	"github.com/kami-sama-fr/platform/server/src/utils"
+	"github.com/skygenesisenterprise/kami-sama/server/src/middleware"
+	"github.com/skygenesisenterprise/kami-sama/server/src/services"
+	"github.com/skygenesisenterprise/kami-sama/server/src/utils"
 )
 
 type CalendarHandler struct {

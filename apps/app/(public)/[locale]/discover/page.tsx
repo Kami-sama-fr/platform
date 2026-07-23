@@ -11,12 +11,8 @@ import { Button } from '@/components/ui/button'
 import { HeroBanner } from '@/components/kami/hero-banner'
 import {
   getAnime,
+  getAllAnime,
   getContinueWatching,
-  getEditorialPicks,
-  getLatestAdditions,
-  getRecentlyAdded,
-  getSeasonalPicks,
-  getTrending,
 } from '@/lib/mock-data'
 import { useAuth } from '@/context/AuthContext'
 import type { Anime } from '@/types/anime'
@@ -403,16 +399,13 @@ export default function DiscoverPage({
   const { locale } = use(params)
   const pathname = usePathname()
   const currentLocale = locale || pathname?.split('/')[1] || 'fr'
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const t = useTranslations('Public.discover')
   const featured = ['neon-samurai', 'crimson-vow', 'moonlit-path', 'ember-crown', 'starfall-academy', 'spirit-veil'].map((id) => getAnime(id)!)
   const continueWatching = getContinueWatching().slice(0, 5)
   const continueWatchingAnimes = continueWatching.map((item) => item.anime)
-  const seasonalPicks = getSeasonalPicks().map((pick) => pick.anime)
-  const recentlyAdded = getRecentlyAdded().map((item) => item.anime)
-  const latestAdditions = getLatestAdditions()
-  const recommendations = getEditorialPicks()
-  const trending = getTrending().map((item) => item.anime)
+  const username = user?.displayName || ''
+  const allAnime = getAllAnime()
   const sections: Array<{
     title: string
     href: string
@@ -420,16 +413,9 @@ export default function DiscoverPage({
     subtitle?: string
     ctaLabel?: string
   }> = [
-    ...(isAuthenticated ? [{ title: t('sectionResume'), href: '/library', animes: [] as Anime[], subtitle: t('sectionResumeSub') }] : []),
-    { title: t('sectionNewWeek'), href: '/catalog?sort=new', animes: recentlyAdded, subtitle: t('sectionNewWeekSub') },
-    { title: t('sectionSimulcast'), href: '/catalog?sort=simulcast', animes: latestAdditions, subtitle: t('sectionSimulcastSub') },
-    { title: t('sectionRecommended'), href: '/catalog?sort=recommended', animes: recommendations, subtitle: t('sectionRecommendedSub') },
-    { title: t('sectionKamiPick'), href: '/catalog?sort=kami', animes: getEditorialPicks().slice(0, 8), subtitle: t('sectionKamiPickSub') },
-    { title: t('sectionEditorial'), href: '/catalog?collection=editorial', animes: getSeasonalPicks().slice(0, 8).map((p) => p.anime), subtitle: t('sectionEditorialSub') },
-    { title: t('sectionExplore'), href: '/catalog?sort=explore', animes: seasonalPicks, subtitle: t('sectionExploreSub') },
-    { title: t('sectionMustWatch'), href: '/catalog?sort=popular', animes: trending.slice(0, 8), subtitle: t('sectionMustWatchSub') },
-    { title: t('sectionTrending'), href: '/catalog?sort=trending', animes: trending, subtitle: t('sectionTrendingSub') },
-    { title: t('sectionClassics'), href: '/catalog?sort=classics', animes: getEditorialPicks().slice(0, 6), subtitle: t('sectionClassicsSub') },
+    { title: t('sectionExclusive'), href: '/catalog?sort=exclusive', animes: allAnime.slice(0, 8), subtitle: t('sectionExclusiveSub') },
+    ...(isAuthenticated && username ? [{ title: t('sectionResumeUsername', { username }), href: '/library', animes: [] as Anime[], subtitle: t('sectionResumeSub') }] : []),
+    { title: t('sectionThrillers'), href: '/catalog?genre=thriller', animes: allAnime.slice(2, 10), subtitle: t('sectionThrillersSub') },
     ...(isAuthenticated ? [{
       title: t('sectionWatchlist'),
       href: '/library',
@@ -437,6 +423,18 @@ export default function DiscoverPage({
       animes: continueWatchingAnimes,
       subtitle: t('sectionWatchlistSub'),
     }] : []),
+    { title: t('sectionDailyPick'), href: '/catalog?sort=daily', animes: allAnime.slice(4, 12), subtitle: t('sectionDailyPickSub') },
+    { title: t('sectionRewatch'), href: '/catalog?sort=rewatch', animes: allAnime.slice(1, 7), subtitle: t('sectionRewatchSub') },
+    { title: t('sectionFilms'), href: '/catalog?type=movie', animes: allAnime.slice(6, 14), subtitle: t('sectionFilmsSub') },
+    { title: t('sectionTimeTravel'), href: '/catalog?genre=scifi', animes: allAnime.slice(3, 11), subtitle: t('sectionTimeTravelSub') },
+    { title: t('sectionNewWeek'), href: '/catalog?sort=new', animes: allAnime.slice(8, 16), subtitle: t('sectionNewWeekSub') },
+    { title: t('sectionActionAdventure'), href: '/catalog?genre=action', animes: allAnime.slice(5, 13), subtitle: t('sectionActionAdventureSub') },
+    { title: t('sectionBlockbusters'), href: '/catalog?genre=revenge', animes: allAnime.slice(0, 6), subtitle: t('sectionBlockbustersSub') },
+    { title: t('sectionMultiverse'), href: '/catalog?genre=multiverse', animes: allAnime.slice(7, 15), subtitle: t('sectionMultiverseSub') },
+    { title: t('sectionEspionage'), href: '/catalog?genre=espionage', animes: allAnime.slice(2, 8), subtitle: t('sectionEspionageSub') },
+    { title: t('sectionSpaceOpera'), href: '/catalog?genre=space', animes: allAnime.slice(4, 12), subtitle: t('sectionSpaceOperaSub') },
+    { title: t('sectionTop10', { country: 'France' }), href: '/catalog?sort=top10', animes: allAnime.slice(0, 10), subtitle: t('sectionTop10Sub') },
+    { title: t('sectionWarPolitics'), href: '/catalog?genre=war', animes: allAnime.slice(6, 14), subtitle: t('sectionWarPoliticsSub') },
   ]
 
   return (
@@ -445,7 +443,7 @@ export default function DiscoverPage({
 
       <main id="main-content" className="relative z-10 pb-12">
         {sections.map((section) =>
-          section.title === t('sectionResume') ? (
+          (section.title === t('sectionResumeUsername', { username }) || section.title === t('sectionResume')) ? (
             <DiscoverRail key={section.title} title={section.title} href={section.href} subtitle={section.subtitle}>
               {continueWatching.map((item) => (
                 <DiscoverAnimeTile

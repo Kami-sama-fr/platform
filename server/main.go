@@ -12,11 +12,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	redisclient "github.com/kami-sama-fr/platform/server/internal/redis"
-	"github.com/kami-sama-fr/platform/server/src/config"
-	"github.com/kami-sama-fr/platform/server/src/middleware"
-	"github.com/kami-sama-fr/platform/server/src/routes"
-	"github.com/kami-sama-fr/platform/server/src/services"
+	redisclient "github.com/skygenesisenterprise/kami-sama/server/internal/redis"
+	"github.com/skygenesisenterprise/kami-sama/server/src/config"
+	"github.com/skygenesisenterprise/kami-sama/server/src/middleware"
+	"github.com/skygenesisenterprise/kami-sama/server/src/routes"
+	"github.com/skygenesisenterprise/kami-sama/server/src/services"
 )
 
 type runtimeMode string

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"sync"
 
-	redisclient "github.com/kami-sama-fr/platform/server/internal/redis"
-	"github.com/kami-sama-fr/platform/server/src/config"
-	"github.com/kami-sama-fr/platform/server/src/interfaces"
+	redisclient "github.com/skygenesisenterprise/kami-sama/server/internal/redis"
+	"github.com/skygenesisenterprise/kami-sama/server/src/config"
+	"github.com/skygenesisenterprise/kami-sama/server/src/interfaces"
 )
 
 type InMemoryEventBus struct {

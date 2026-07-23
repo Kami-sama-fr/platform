@@ -1,4 +1,4 @@
-module github.com/kami-sama-fr/platform
+module github.com/skygenesisenterprise/kami-sama
 
 go 1.25.5
 

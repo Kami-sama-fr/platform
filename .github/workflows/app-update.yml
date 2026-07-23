@@ -49,7 +49,7 @@ jobs:
           echo "Deploy: ${{ github.event.inputs.deploy_target }}"
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Extract version
         id: version
@@ -61,7 +61,7 @@ jobs:
           echo "Building version: $VERSION"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -87,10 +87,10 @@ jobs:
         run: pnpm build
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Log into GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -98,7 +98,7 @@ jobs:
 
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -108,7 +108,7 @@ jobs:
 
       - name: Build and push Docker image
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./app
           file: ./app/infra/Dockerfile
@@ -214,7 +214,7 @@ jobs:
 
     steps:
       - name: Create deployment success comment
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const version = '${{ needs.build-and-push.outputs.version }}';
@@ -245,7 +245,7 @@ jobs:
 
     steps:
       - name: Create deployment failure issue
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const version = '${{ needs.build-and-push.outputs.version }}';

@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	redisclient "github.com/kami-sama-fr/platform/server/internal/redis"
-	"github.com/kami-sama-fr/platform/server/src/config"
-	"github.com/kami-sama-fr/platform/server/src/interfaces"
-	"github.com/kami-sama-fr/platform/server/src/middleware"
-	"github.com/kami-sama-fr/platform/server/src/services"
-	"github.com/kami-sama-fr/platform/server/src/utils"
+	redisclient "github.com/skygenesisenterprise/kami-sama/server/internal/redis"
+	"github.com/skygenesisenterprise/kami-sama/server/src/config"
+	"github.com/skygenesisenterprise/kami-sama/server/src/interfaces"
+	"github.com/skygenesisenterprise/kami-sama/server/src/middleware"
+	"github.com/skygenesisenterprise/kami-sama/server/src/services"
+	"github.com/skygenesisenterprise/kami-sama/server/src/utils"
 )
 
 type Dependencies struct {

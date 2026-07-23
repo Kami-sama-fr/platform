@@ -14,8 +14,8 @@ type User struct {
 	AvatarURL         *string        `gorm:"column:avatar_url;type:text" json:"avatarUrl,omitempty"`
 	Status            string         `gorm:"column:status;type:text;not null;default:'active'" json:"status"`
 	PresenceStatus    string         `gorm:"column:presence_status;type:text;default:'offline'" json:"presenceStatus"`
-	Roles             []string       `gorm:"column:roles;type:text[]" json:"roles,omitempty"`
-	Permissions       []string       `gorm:"column:permissions;type:text[]" json:"permissions,omitempty"`
+	Roles             StringArray    `gorm:"column:roles;type:text[]" json:"roles,omitempty"`
+	Permissions       StringArray    `gorm:"column:permissions;type:text[]" json:"permissions,omitempty"`
 	LastSeenAt        *time.Time     `gorm:"column:last_seen_at;index" json:"lastSeenAt,omitempty"`
 	EmailVerifiedAt   *time.Time     `gorm:"column:email_verified_at" json:"emailVerifiedAt,omitempty"`
 	PasswordChangedAt *time.Time     `gorm:"column:password_changed_at" json:"passwordChangedAt,omitempty"`

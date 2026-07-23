@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kami-sama-fr/platform/server/src/interfaces"
-	"github.com/kami-sama-fr/platform/server/src/models"
-	"github.com/kami-sama-fr/platform/server/src/services"
-	"github.com/kami-sama-fr/platform/server/src/utils"
+	"github.com/skygenesisenterprise/kami-sama/server/src/interfaces"
+	"github.com/skygenesisenterprise/kami-sama/server/src/models"
+	"github.com/skygenesisenterprise/kami-sama/server/src/services"
+	"github.com/skygenesisenterprise/kami-sama/server/src/utils"
 )
 
 func (h *apiHandler) register(c *gin.Context) {
